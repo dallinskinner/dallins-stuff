@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { getApp } from './registry'
+import { Window } from './Window'
 
 export function AppWindow() {
   const { appId } = useParams<{ appId: string }>()
@@ -10,5 +11,9 @@ export function AppWindow() {
   }
 
   const Component = app.component
-  return <Component />
+  return (
+    <Window title={app.label}>
+      <Component />
+    </Window>
+  )
 }
