@@ -1,0 +1,8 @@
+.desktop {
+  position: relative;
+}
+
+.icons {
+  display: flex;
+  flex-wrap: wrap;
+}
