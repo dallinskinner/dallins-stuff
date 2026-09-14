@@ -1,0 +1,34 @@
+.section {
+  margin-bottom: calc(var(--paragraph-spacing) * 2);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-heading);
+  opacity: 0.6;
+  margin-bottom: var(--paragraph-spacing);
+}
+
+.heading {
+  margin-bottom: 1em;
+}
+
+.heading:last-child {
+  margin-bottom: 0;
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  max-width: var(--body-max-width);
+}
+
+.inlineSamples > * {
+  margin-bottom: var(--paragraph-spacing);
+}
