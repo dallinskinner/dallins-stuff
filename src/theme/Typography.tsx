@@ -12,6 +12,7 @@ export function Typography() {
     },
     heading: {
       weight: [700, 400, 900, 10],
+      heroScale: [2.0, 1.2, 3, 0.05],
       lineHeight: {
         tight: [1.1, 1, 1.3, 0.01],
         loose: [1.3, 1.1, 1.6, 0.01],
@@ -34,7 +35,7 @@ export function Typography() {
       lineHeight: [1.4, 1.2, 2, 0.01],
     },
     paragraphSpacing: [1, 0.4, 2.5, 0.05],
-  })
+  }, { defaultCollapsed: true })
 
   useEffect(() => {
     const { scale, baseline, heading, body, code, lead, paragraphSpacing } = values
@@ -72,6 +73,11 @@ export function Typography() {
       root.setProperty(`--lh-${level}`, `${curveAt(size, heading.lineHeight.tight, heading.lineHeight.loose)}`)
       root.setProperty(`--ls-${level}`, `${curveAt(size, heading.letterSpacing.tight, heading.letterSpacing.loose)}em`)
     }
+
+    const heroSize = h1Size * heading.heroScale
+    root.setProperty('--fs-hero', `${heroSize}px`)
+    root.setProperty('--lh-hero', `${curveAt(heroSize, heading.lineHeight.tight, heading.lineHeight.loose)}`)
+    root.setProperty('--ls-hero', `${curveAt(heroSize, heading.letterSpacing.tight, heading.letterSpacing.loose)}em`)
 
     root.setProperty('--fs-body', `${scale.base}px`)
     root.setProperty('--fs-small', `${step(-1)}px`)

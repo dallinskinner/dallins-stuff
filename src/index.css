@@ -1,3 +1,13 @@
+@font-face {
+  font-family: 'Anthony';
+  src:
+    url('/fonts/Anthony.woff2') format('woff2'),
+    url('/fonts/Anthony.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light dark;
   --background: #0e0e0e;
@@ -8,6 +18,9 @@
   --padding: 12px;
   --content-background: #191919;
 
+  --fs-hero: 97.6px;
+  --lh-hero: 1.1;
+  --ls-hero: -0.02em;
   --fs-h1: 48.8px;
   --fs-h2: 39.1px;
   --fs-h3: 31.3px;
@@ -93,6 +106,16 @@ h6 {
   font-size: var(--fs-h6);
   line-height: var(--lh-h6);
   letter-spacing: var(--ls-h6);
+}
+
+.font-accent {
+  font-family: 'Anthony', 'Inter', sans-serif;
+}
+
+.hero {
+  font-size: var(--fs-hero);
+  line-height: var(--lh-hero);
+  letter-spacing: var(--ls-hero);
 }
 
 p,
