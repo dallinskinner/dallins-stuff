@@ -11,6 +11,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This project uses **pnpm**, not npm or yarn. There is no test setup yet.
 
+## Verifying changes
+
+Don't spin up headless browsers, Playwright, or any other automated visual-testing setup to verify UI changes (including installing browser binaries or system libraries to make one work). `pnpm build` is sufficient to confirm things compile and type-check. The user tests visual/interactive changes themselves in a real browser and prefers to keep this lightweight — just make the change and let them check it.
+
 ## Architecture
 
 This is a personal site built as a desktop-OS metaphor: a persistent "desktop" shell with clickable icons, where navigating to an icon's target focuses a "subapp" (window) rather than doing a full page navigation. It's a Vite + React + TypeScript SPA with React Router for real, deep-linkable URLs.

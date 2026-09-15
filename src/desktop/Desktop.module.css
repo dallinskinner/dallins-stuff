@@ -5,4 +5,6 @@
 .icons {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--icon-gap);
+  padding: var(--icon-inset);
 }

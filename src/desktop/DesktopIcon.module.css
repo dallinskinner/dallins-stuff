@@ -2,4 +2,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.icon:hover {
+  color: var(--hover-color);
+}
+
+.icon.open {
+  color: var(--active-color, #fff);
+}
+
+.label {
+  font-variation-settings: 'MONO' 50, 'DRKM' var(--font-drkm);
+}
+
+.image {
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  image-rendering: pixelated;
 }

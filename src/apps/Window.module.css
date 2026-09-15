@@ -37,10 +37,26 @@
 
 .title {
   flex: 1;
+  font-weight: var(--window-title-weight);
+  font-variation-settings: 'MONO' var(--window-title-mono), 'DRKM' var(--font-drkm);
 }
 
 .close {
-  text-decoration: none;
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: var(--foreground);
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  image-rendering: pixelated;
+}
+
+.close:hover {
+  background-color: var(--hover-color);
 }
 
 .content {

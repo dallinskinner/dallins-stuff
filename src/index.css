@@ -1,4 +1,12 @@
 @font-face {
+  font-family: 'ABC Areal Superfamily';
+  src: url('/fonts/ABCArealSuperfamilyVariable.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: oblique -12deg 0deg;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Anthony';
   src:
     url('/fonts/Anthony.woff2') format('woff2'),
@@ -17,6 +25,8 @@
   --radius: 8px;
   --padding: 12px;
   --content-background: #191919;
+  /* ABC Areal Superfamily's dark-mode optical axis; site is dark-only for now. */
+  --font-drkm: 1;
 
   --fs-hero: 97.6px;
   --lh-hero: 1.1;
@@ -58,7 +68,8 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'ABC Areal Superfamily', sans-serif;
+  font-variation-settings: 'DRKM' var(--font-drkm);
   background: var(--background);
   color: var(--foreground);
   font-size: var(--fs-body);
@@ -109,7 +120,7 @@ h6 {
 }
 
 .font-accent {
-  font-family: 'Anthony', 'Inter', sans-serif;
+  font-family: 'Anthony', 'ABC Areal Superfamily', sans-serif;
 }
 
 .hero {
@@ -150,7 +161,8 @@ a {
 
 code,
 pre {
-  font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+  font-family: 'ABC Areal Superfamily', ui-monospace, Menlo, Consolas, monospace;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
   font-size: var(--fs-code);
 }
 

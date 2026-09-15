@@ -11,7 +11,7 @@ export function TypographyApp() {
 
       <div className={styles.section}>
         <div className={styles.sectionTitle}>Headings</div>
-        <h1 className={`${styles.heading} hero`}>The quick brown fox jumps over the lazy dog</h1>
+        <h1 className={`${styles.heading} font-accent hero`}>The quick brown fox jumps over the lazy dog</h1>
         <h1 className={styles.heading}>The quick brown fox jumps over the lazy dog</h1>
         <h2 className={styles.heading}>The quick brown fox jumps over the lazy dog</h2>
         <h3 className={styles.heading}>The quick brown fox jumps over the lazy dog</h3>

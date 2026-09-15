@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useHoverColor } from '../theme/useHoverColor'
 import styles from './Window.module.css'
+import closeIcon from '../assets/icons/close.png'
 
 interface WindowProps {
   title: string
@@ -12,6 +14,7 @@ export function Window({ title, children }: WindowProps) {
   const dragOffset = useRef({ x: 0, y: 0 })
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
+  const { onPointerEnter: onCloseHoverEnter } = useHoverColor()
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return
@@ -50,9 +53,14 @@ export function Window({ title, children }: WindowProps) {
         onPointerCancel={handleDragEnd}
       >
         <span className={styles.title}>{title}</span>
-        <Link to="/" className={styles.close} onPointerDown={(e) => e.stopPropagation()}>
-          ✕
-        </Link>
+        <Link
+          to="/"
+          className={styles.close}
+          style={{ '--icon': `url(${closeIcon})` } as React.CSSProperties}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerEnter={onCloseHoverEnter}
+          aria-label="Close"
+        />
       </div>
       <div className={styles.content}>{children}</div>
     </div>
