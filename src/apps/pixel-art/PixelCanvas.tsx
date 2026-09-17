@@ -1,10 +1,28 @@
 import { forwardRef, useEffect, useRef, useState } from 'react'
 import type { PixelGrid, RGBA } from './pixelGrid'
-import { TRANSPARENT, cellsBetween, ellipseCells, floodFillCells, gridToImageData, rectangleCells } from './pixelGrid'
+import {
+  TRANSPARENT,
+  bezierCells,
+  cellsBetween,
+  ellipseCells,
+  floodFillCells,
+  gridToImageData,
+  rectangleCells,
+} from './pixelGrid'
 import styles from './PixelCanvas.module.css'
 
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line'
+type Cell = { row: number; col: number }
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve'
 type ShapeTool = 'ellipse' | 'rectangle' | 'line'
+
+/** A curve is drawn in three drags: the line's two anchors, then each anchor's control-point handle. */
+interface CurveState {
+  phase: 'line' | 'bend-start' | 'bend-end'
+  p0: Cell
+  p1: Cell
+  p2: Cell
+  p3: Cell
+}
 
 interface PixelCanvasProps {
   grid: PixelGrid
@@ -27,6 +45,10 @@ const SHAPE_CELLS: Record<ShapeTool, (r0: number, c0: number, r1: number, c1: nu
 
 function isShapeTool(tool: Tool): tool is ShapeTool {
   return tool === 'ellipse' || tool === 'rectangle' || tool === 'line'
+}
+
+function curveCells(state: CurveState): Cell[] {
+  return bezierCells(state.p0, state.p1, state.p2, state.p3)
 }
 
 function inBounds(cell: { row: number; col: number }, width: number, height: number): boolean {
@@ -76,9 +98,23 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   ref,
 ) {
   const isPaintingRef = useRef(false)
-  const lastCellRef = useRef<{ row: number; col: number } | null>(null)
-  const shapeStartRef = useRef<{ row: number; col: number } | null>(null)
-  const [previewCells, setPreviewCells] = useState<{ row: number; col: number }[]>([])
+  const lastCellRef = useRef<Cell | null>(null)
+  const shapeStartRef = useRef<Cell | null>(null)
+  const curveRef = useRef<CurveState | null>(null)
+  const [previewCells, setPreviewCells] = useState<Cell[]>([])
+
+  // Abandons any mid-gesture state (e.g. a curve's pending bend) when the active tool changes.
+  useEffect(() => {
+    isPaintingRef.current = false
+    shapeStartRef.current = null
+    curveRef.current = null
+  }, [tool])
+
+  const [prevTool, setPrevTool] = useState(tool)
+  if (prevTool !== tool) {
+    setPrevTool(tool)
+    if (previewCells.length > 0) setPreviewCells([])
+  }
 
   useEffect(() => {
     const canvas = (ref as React.RefObject<HTMLCanvasElement>).current
@@ -121,6 +157,23 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     if (!cell) return
     e.currentTarget.setPointerCapture(e.pointerId)
     lastCellRef.current = null
+
+    if (tool === 'curve') {
+      isPaintingRef.current = true
+      let state = curveRef.current
+      if (!state) {
+        onBeginStroke()
+        state = { phase: 'line', p0: cell, p1: cell, p2: cell, p3: cell }
+        curveRef.current = state
+      } else if (state.phase === 'bend-start') {
+        state.p1 = cell
+      } else if (state.phase === 'bend-end') {
+        state.p2 = cell
+      }
+      setPreviewCells(curveCells(state))
+      return
+    }
+
     onBeginStroke()
     if (isShapeTool(tool)) {
       isPaintingRef.current = true
@@ -136,6 +189,22 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!isPaintingRef.current) return
+    if (tool === 'curve') {
+      const cell = getCell(e)
+      const state = curveRef.current
+      if (!cell || !state) return
+      if (state.phase === 'line') {
+        state.p3 = cell
+        state.p1 = state.p0
+        state.p2 = state.p3
+      } else if (state.phase === 'bend-start') {
+        state.p1 = cell
+      } else {
+        state.p2 = cell
+      }
+      setPreviewCells(curveCells(state))
+      return
+    }
     if (isShapeTool(tool)) {
       const cell = getCell(e)
       const start = shapeStartRef.current
@@ -152,6 +221,23 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     e.currentTarget.releasePointerCapture(e.pointerId)
     isPaintingRef.current = false
     lastCellRef.current = null
+    if (tool === 'curve') {
+      const state = curveRef.current
+      if (!state) return
+      if (state.phase === 'line') {
+        state.phase = 'bend-start'
+      } else if (state.phase === 'bend-start') {
+        state.phase = 'bend-end'
+      } else {
+        for (const cell of previewCells) {
+          if (!inBounds(cell, width, height)) continue
+          onPaintCell(cell.row, cell.col, color)
+        }
+        curveRef.current = null
+        setPreviewCells([])
+      }
+      return
+    }
     if (isShapeTool(tool)) {
       for (const cell of previewCells) {
         if (!inBounds(cell, width, height)) continue

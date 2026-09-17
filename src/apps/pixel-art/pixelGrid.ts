@@ -246,3 +246,34 @@ export function cellsBetween(r0: number, c0: number, r1: number, c1: number): { 
 
   return cells
 }
+
+const BEZIER_SAMPLES = 64
+
+/** Cubic Bezier curve through two anchors (p0, p3) pulled by two control points (p1, p2), rasterized
+ *  by sampling at fixed resolution and connecting consecutive samples so fast curvature doesn't gap. */
+export function bezierCells(
+  p0: { row: number; col: number },
+  p1: { row: number; col: number },
+  p2: { row: number; col: number },
+  p3: { row: number; col: number },
+): { row: number; col: number }[] {
+  const cells = new Map<string, { row: number; col: number }>()
+  let previous: { row: number; col: number } | null = null
+
+  for (let i = 0; i <= BEZIER_SAMPLES; i++) {
+    const t = i / BEZIER_SAMPLES
+    const mt = 1 - t
+    const row = mt ** 3 * p0.row + 3 * mt ** 2 * t * p1.row + 3 * mt * t ** 2 * p2.row + t ** 3 * p3.row
+    const col = mt ** 3 * p0.col + 3 * mt ** 2 * t * p1.col + 3 * mt * t ** 2 * p2.col + t ** 3 * p3.col
+    const point = { row: Math.round(row), col: Math.round(col) }
+    cells.set(`${point.row},${point.col}`, point)
+    if (previous) {
+      for (const c of cellsBetween(previous.row, previous.col, point.row, point.col)) {
+        cells.set(`${c.row},${c.col}`, c)
+      }
+    }
+    previous = point
+  }
+
+  return [...cells.values()]
+}
