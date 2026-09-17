@@ -1,18 +1,31 @@
 import { forwardRef, useEffect, useRef, useState } from 'react'
 import type { PixelGrid, RGBA } from './pixelGrid'
-import { TRANSPARENT, cellsBetween, ellipseCells, gridToImageData } from './pixelGrid'
+import { TRANSPARENT, cellsBetween, ellipseCells, floodFillCells, gridToImageData, rectangleCells } from './pixelGrid'
 import styles from './PixelCanvas.module.css'
+
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle'
+type ShapeTool = 'ellipse' | 'rectangle'
 
 interface PixelCanvasProps {
   grid: PixelGrid
   width: number
   height: number
   cellSize: number
-  tool: 'brush' | 'eraser' | 'ellipse'
+  tool: Tool
   color: RGBA
   showGrid: boolean
   onBeginStroke: () => void
   onPaintCell: (row: number, col: number, color: RGBA) => void
+}
+
+const SHAPE_CELLS: Record<ShapeTool, (r0: number, c0: number, r1: number, c1: number) => { row: number; col: number }[]> =
+  {
+    ellipse: ellipseCells,
+    rectangle: rectangleCells,
+  }
+
+function isShapeTool(tool: Tool): tool is ShapeTool {
+  return tool === 'ellipse' || tool === 'rectangle'
 }
 
 function inBounds(cell: { row: number; col: number }, width: number, height: number): boolean {
@@ -81,25 +94,28 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     const cell = getCell(e)
     if (!cell) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    isPaintingRef.current = true
     lastCellRef.current = null
     onBeginStroke()
-    if (tool === 'ellipse') {
+    if (isShapeTool(tool)) {
+      isPaintingRef.current = true
       shapeStartRef.current = cell
       setPreviewCells([cell])
+    } else if (tool === 'fill') {
+      for (const c of floodFillCells(grid, cell.row, cell.col)) onPaintCell(c.row, c.col, color)
     } else {
+      isPaintingRef.current = true
       paintAt(e)
     }
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!isPaintingRef.current) return
-    if (tool === 'ellipse') {
+    if (isShapeTool(tool)) {
       const cell = getCell(e)
       const start = shapeStartRef.current
       if (!cell || !start) return
       const end = e.shiftKey ? squareEndCell(start, cell) : cell
-      setPreviewCells(ellipseCells(start.row, start.col, end.row, end.col))
+      setPreviewCells(SHAPE_CELLS[tool](start.row, start.col, end.row, end.col))
     } else {
       paintAt(e)
     }
@@ -110,7 +126,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     e.currentTarget.releasePointerCapture(e.pointerId)
     isPaintingRef.current = false
     lastCellRef.current = null
-    if (tool === 'ellipse') {
+    if (isShapeTool(tool)) {
       for (const cell of previewCells) {
         if (!inBounds(cell, width, height)) continue
         onPaintCell(cell.row, cell.col, color)
@@ -135,7 +151,13 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         ref={ref}
         width={width}
         height={height}
-        className={tool === 'brush' ? `${styles.canvas} ${styles.brushCursor}` : styles.canvas}
+        className={
+          tool === 'brush'
+            ? `${styles.canvas} ${styles.brushCursor}`
+            : tool === 'eraser'
+              ? `${styles.canvas} ${styles.eraserCursor}`
+              : styles.canvas
+        }
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endStroke}

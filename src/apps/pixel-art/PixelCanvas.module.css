@@ -22,6 +22,10 @@
   cursor: url('../../assets/icons/pencil-cursor.svg') 1 15, crosshair;
 }
 
+.eraserCursor {
+  cursor: url('../../assets/icons/eraser-cursor.svg') 0 11, crosshair;
+}
+
 .gridOverlay {
   position: absolute;
   inset: 0;

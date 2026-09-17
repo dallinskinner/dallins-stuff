@@ -148,6 +148,58 @@ function roundHalfAwayFromCenter(sum: number, offset: number): number {
   return offset >= 0 ? Math.ceil(half) : Math.floor(half)
 }
 
+/** 4-connected region of cells matching the start cell's color, for a flood fill. */
+export function floodFillCells(grid: PixelGrid, startRow: number, startCol: number): { row: number; col: number }[] {
+  const height = grid.length
+  const width = grid[0]?.length ?? 0
+  const target = grid[startRow][startCol]
+  const visited = new Set<string>([`${startRow},${startCol}`])
+  const cells: { row: number; col: number }[] = []
+  const stack: { row: number; col: number }[] = [{ row: startRow, col: startCol }]
+
+  while (stack.length > 0) {
+    const cell = stack.pop()!
+    cells.push(cell)
+    const neighbors = [
+      { row: cell.row - 1, col: cell.col },
+      { row: cell.row + 1, col: cell.col },
+      { row: cell.row, col: cell.col - 1 },
+      { row: cell.row, col: cell.col + 1 },
+    ]
+    for (const n of neighbors) {
+      if (n.row < 0 || n.row >= height || n.col < 0 || n.col >= width) continue
+      const key = `${n.row},${n.col}`
+      if (visited.has(key)) continue
+      visited.add(key)
+      const c = grid[n.row][n.col]
+      if (c.r === target.r && c.g === target.g && c.b === target.b && c.a === target.a) {
+        stack.push(n)
+      }
+    }
+  }
+
+  return cells
+}
+
+/** Rectangle outline inscribed in the bounding box between two opposite corners. */
+export function rectangleCells(r0: number, c0: number, r1: number, c1: number): { row: number; col: number }[] {
+  const rowMin = Math.min(r0, r1)
+  const rowMax = Math.max(r0, r1)
+  const colMin = Math.min(c0, c1)
+  const colMax = Math.max(c0, c1)
+
+  const cells: { row: number; col: number }[] = []
+  for (let col = colMin; col <= colMax; col++) {
+    cells.push({ row: rowMin, col })
+    if (rowMax !== rowMin) cells.push({ row: rowMax, col })
+  }
+  for (let row = rowMin + 1; row < rowMax; row++) {
+    cells.push({ row, col: colMin })
+    if (colMax !== colMin) cells.push({ row, col: colMax })
+  }
+  return cells
+}
+
 export function imageDataToGrid(imageData: ImageData): PixelGrid {
   const { width, height, data } = imageData
   const grid = createGrid(width, height)

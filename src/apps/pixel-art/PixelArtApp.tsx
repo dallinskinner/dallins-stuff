@@ -6,9 +6,11 @@ import { PixelPreview } from './PixelPreview'
 import pencilIcon from '../../assets/icons/pencil.png'
 import circleIcon from '../../assets/icons/circle.png'
 import eraserIcon from '../../assets/icons/eraser.png'
+import fillIcon from '../../assets/icons/fill.png'
+import squareIcon from '../../assets/icons/square.png'
 import styles from './PixelArtApp.module.css'
 
-type Tool = 'brush' | 'eraser' | 'ellipse'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle'
 
 const GRID_SIZES = [16, 32] as const
 const ZOOM_MIN = 1
@@ -98,6 +100,24 @@ export function PixelArtApp() {
               onClick={() => setTool('ellipse')}
             >
               <span className={styles.toolIcon} style={{ '--icon': `url(${circleIcon})` } as React.CSSProperties} />
+            </button>
+            <button
+              type="button"
+              className={styles.toolButton}
+              aria-pressed={tool === 'rectangle'}
+              aria-label="Rectangle"
+              onClick={() => setTool('rectangle')}
+            >
+              <span className={styles.toolIcon} style={{ '--icon': `url(${squareIcon})` } as React.CSSProperties} />
+            </button>
+            <button
+              type="button"
+              className={styles.toolButton}
+              aria-pressed={tool === 'fill'}
+              aria-label="Fill"
+              onClick={() => setTool('fill')}
+            >
+              <span className={styles.toolIcon} style={{ '--icon': `url(${fillIcon})` } as React.CSSProperties} />
             </button>
           </div>
           <label className={styles.activeColor} style={{ backgroundColor: colorHex }} aria-label="Active color">
