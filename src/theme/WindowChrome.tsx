@@ -7,7 +7,7 @@ export function WindowChrome() {
       mono: [50, 0, 100, 1],
       weight: [550, 400, 700, 10],
     },
-  })
+  }, { defaultCollapsed: true })
 
   useEffect(() => {
     const root = document.documentElement.style

@@ -1,0 +1,9 @@
+.icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--icon-gap);
+}
+
+.empty {
+  opacity: 0.6;
+}

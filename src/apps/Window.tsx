@@ -6,10 +6,11 @@ import closeIcon from '../assets/icons/close.png'
 
 interface WindowProps {
   title: string
+  maxWidth?: number
   children: React.ReactNode
 }
 
-export function Window({ title, children }: WindowProps) {
+export function Window({ title, maxWidth, children }: WindowProps) {
   const windowRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -43,7 +44,13 @@ export function Window({ title, children }: WindowProps) {
     <div
       ref={windowRef}
       className={isDragging ? `${styles.window} ${styles.dragging}` : styles.window}
-      style={{ '--x': `${pos.x}px`, '--y': `${pos.y}px` } as React.CSSProperties}
+      style={
+        {
+          '--x': `${pos.x}px`,
+          '--y': `${pos.y}px`,
+          ...(maxWidth ? { '--window-max-width': `${maxWidth}px` } : {}),
+        } as React.CSSProperties
+      }
     >
       <div
         className={isDragging ? `${styles.titleBar} ${styles.dragging}` : styles.titleBar}

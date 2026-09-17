@@ -5,7 +5,7 @@
   --x: 0px;
   --y: 0px;
   transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
-  max-width: 600px;
+  max-width: var(--window-max-width, 600px);
   max-height: 100vh;
   border: 1px solid var(--border);
   border-radius: var(--radius);

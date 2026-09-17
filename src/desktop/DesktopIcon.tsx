@@ -16,7 +16,7 @@ export function DesktopIcon({ to, label, icon }: DesktopIconProps) {
   const { onPointerEnter } = useHoverColor()
   const [isHovered, setIsHovered] = useState(false)
   const { pathname } = useLocation()
-  const isOpen = pathname === to
+  const isOpen = pathname === to || pathname.startsWith(`${to}/`)
   const linkRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {

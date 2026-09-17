@@ -1,0 +1,33 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.canvas {
+  display: block;
+  width: var(--display-width);
+  height: var(--display-height);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 12px 12px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.brushCursor {
+  cursor: url('../../assets/icons/pencil-cursor.svg') 1 15, crosshair;
+}
+
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--pixel-grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--pixel-grid-color) 1px, transparent 1px);
+  background-size: var(--cell-size) var(--cell-size);
+}

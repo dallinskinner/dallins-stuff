@@ -22,13 +22,14 @@ This is a personal site built as a desktop-OS metaphor: a persistent "desktop" s
 Routing (`src/App.tsx`) nests subapp routes inside the shell route so the shell never unmounts:
 
 ```
-/               -> Desktop (shell: renders icons + <Outlet/>)
-  apps/:appId   -> AppWindow (resolves :appId and renders the matched subapp)
+/           -> Desktop (shell: renders icons + <Outlet/>)
+  apps/*    -> AppWindow (resolves the full splat path down the app tree and renders the match)
 ```
 
 - `src/desktop/Desktop.tsx` — the persistent shell. Renders one `DesktopIcon` per entry in the app registry, plus an `<Outlet/>` where the active subapp renders.
-- `src/apps/registry.ts` — single source of truth for subapps: an array of `{ id, label, component }`. Adding a new subapp means creating its component and adding one entry here — nothing else needs to know about it.
-- `src/apps/AppWindow.tsx` — reads `:appId` from the route params, looks it up via `getApp()`, and renders that subapp's component (or a not-found message).
+- `src/apps/registry.ts` — single source of truth for subapps, as a **tree**: each `AppDefinition` is either a leaf (`{ id, label, component }`) or a directory (`{ id, label, children }`, itself a list of `AppDefinition`). `resolvePath()` walks a `/`-separated id path (from the route splat) down that tree. Adding a leaf subapp means creating its component and adding one entry (at the top level or inside a directory's `children`) — nothing else needs to know about it.
+- `src/apps/AppWindow.tsx` — reads the route splat, resolves it via `resolvePath()`, and renders either the matched leaf's component or, for a directory, `DirectoryApp` (or a not-found message if nothing matches).
+- `src/apps/DirectoryApp.tsx` — renders a grid of `DesktopIcon`s for a directory's children, linking each to `<basePath>/<childId>`. A directory is just a nested desktop rendered inside a window.
 - Individual subapps (`AboutApp.tsx`, `ProjectsApp.tsx`, `ContactApp.tsx`) are plain components with no knowledge of routing or the shell.
 
 There is no window manager yet (no dragging, stacking, focus/z-index, or multiple simultaneously-open windows) — currently only one subapp renders at a time, driven entirely by the route.

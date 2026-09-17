@@ -1,19 +1,25 @@
 import { useParams } from 'react-router-dom'
-import { getApp } from './registry'
+import { resolvePath } from './registry'
 import { Window } from './Window'
+import { DirectoryApp } from './DirectoryApp'
 
 export function AppWindow() {
-  const { appId } = useParams<{ appId: string }>()
-  const app = getApp(appId)
+  const { '*': splat } = useParams()
+  const resolved = resolvePath(splat ?? '')
 
-  if (!app) {
-    return <div>No app found for "{appId}"</div>
+  if (!resolved) {
+    return <div>No app found for "{splat}"</div>
   }
 
-  const Component = app.component
+  const { node, path } = resolved
+
   return (
-    <Window title={app.label}>
-      <Component />
+    <Window title={node.label} maxWidth={node.windowMaxWidth}>
+      {node.children ? (
+        <DirectoryApp entries={node.children} basePath={`/apps/${path}`} />
+      ) : node.component ? (
+        <node.component />
+      ) : null}
     </Window>
   )
 }

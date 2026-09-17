@@ -1,0 +1,138 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  align-items: flex-start;
+}
+
+.app button,
+.app label {
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.workspace {
+  position: relative;
+  display: flex;
+  gap: var(--padding);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  align-self: flex-start;
+  width: 128px;
+  flex-shrink: 0;
+}
+
+.bottomBar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--padding);
+  width: 100%;
+  padding-top: var(--padding);
+}
+
+.bottomBar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--padding));
+  right: calc(-1 * var(--padding));
+  height: 1px;
+  background: var(--border);
+}
+
+.bottomBar label {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.toolPanel {
+  display: flex;
+  flex-direction: column;
+  width: 48px;
+  flex-shrink: 0;
+}
+
+.toolButtons {
+  display: grid;
+  grid-template-columns: repeat(2, 24px);
+}
+
+.toolButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+}
+
+.toolButton[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.toolIcon {
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  image-rendering: pixelated;
+}
+
+.activeColor {
+  display: block;
+  position: relative;
+  margin-top: auto;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  cursor: pointer;
+}
+
+.hiddenColorInput,
+.hiddenFileInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+}
+
+.previewCorner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.zoomSlider {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zoomSlider input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}

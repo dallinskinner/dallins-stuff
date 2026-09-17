@@ -11,7 +11,7 @@ export function Theme() {
     radius: [8, 0, 32],
     padding: [12, 0, 40],
     contentBackground: '#191919',
-  })
+  }, { defaultCollapsed: true })
 
   useEffect(() => {
     for (const [key, value] of Object.entries(values)) {

@@ -1,0 +1,18 @@
+.frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--frame-size);
+  height: var(--frame-size);
+  background: #d9d9d9;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.preview {
+  display: block;
+  width: var(--zoom-width);
+  height: var(--zoom-height);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}

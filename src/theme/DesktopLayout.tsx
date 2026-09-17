@@ -5,7 +5,7 @@ export function DesktopLayout() {
   const values = useDialKit('Desktop', {
     iconGap: [16, 0, 64, 1],
     iconInset: [24, 0, 96, 1],
-  })
+  }, { defaultCollapsed: true })
 
   useEffect(() => {
     const root = document.documentElement.style

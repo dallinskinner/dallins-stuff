@@ -5,6 +5,7 @@ import { Theme } from './theme/Theme'
 import { Typography } from './theme/Typography'
 import { DesktopLayout } from './theme/DesktopLayout'
 import { WindowChrome } from './theme/WindowChrome'
+import { PixelArtTheme } from './theme/PixelArtTheme'
 
 function App() {
   return (
@@ -13,9 +14,10 @@ function App() {
       <Typography />
       <DesktopLayout />
       <WindowChrome />
+      <PixelArtTheme />
       <Routes>
         <Route path="/" element={<Desktop />}>
-          <Route path="apps/:appId" element={<AppWindow />} />
+          <Route path="apps/*" element={<AppWindow />} />
         </Route>
       </Routes>
     </>
