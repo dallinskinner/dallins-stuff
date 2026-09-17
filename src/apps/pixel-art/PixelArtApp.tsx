@@ -10,9 +10,10 @@ import fillIcon from '../../assets/icons/fill.png'
 import squareIcon from '../../assets/icons/square.png'
 import lineIcon from '../../assets/icons/line.png'
 import curveIcon from '../../assets/icons/curve.png'
+import selectIcon from '../../assets/icons/select.png'
 import styles from './PixelArtApp.module.css'
 
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select'
 
 const GRID_SIZES = [16, 32] as const
 const ZOOM_MIN = 1
@@ -76,6 +77,15 @@ export function PixelArtApp() {
       <div className={styles.workspace}>
         <div className={styles.toolPanel}>
           <div className={styles.toolButtons}>
+            <button
+              type="button"
+              className={styles.toolButton}
+              aria-pressed={tool === 'select'}
+              aria-label="Select"
+              onClick={() => setTool('select')}
+            >
+              <span className={styles.toolIcon} style={{ '--icon': `url(${selectIcon})` } as React.CSSProperties} />
+            </button>
             <button
               type="button"
               className={styles.toolButton}

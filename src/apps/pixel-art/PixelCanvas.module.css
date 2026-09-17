@@ -26,6 +26,10 @@
   cursor: url('../../assets/icons/eraser-cursor.svg') 0 11, crosshair;
 }
 
+.moveCursor {
+  cursor: move;
+}
+
 .gridOverlay {
   position: absolute;
   inset: 0;
@@ -34,4 +38,45 @@
     linear-gradient(to right, var(--pixel-grid-color) 1px, transparent 1px),
     linear-gradient(to bottom, var(--pixel-grid-color) 1px, transparent 1px);
   background-size: var(--cell-size) var(--cell-size);
+}
+
+.selectionOverlay {
+  position: absolute;
+  left: var(--sel-x);
+  top: var(--sel-y);
+  width: var(--sel-w);
+  height: var(--sel-h);
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--accent) 50%, transparent 50%) repeat-x,
+    linear-gradient(90deg, var(--accent) 50%, transparent 50%) repeat-x,
+    linear-gradient(0deg, var(--accent) 50%, transparent 50%) repeat-y,
+    linear-gradient(0deg, var(--accent) 50%, transparent 50%) repeat-y;
+  background-size:
+    8px 2px,
+    8px 2px,
+    2px 8px,
+    2px 8px;
+  background-position:
+    0 0,
+    0 100%,
+    0 0,
+    100% 0;
+  animation: marchingAnts 0.4s linear infinite;
+}
+
+@keyframes marchingAnts {
+  to {
+    background-position:
+      8px 0,
+      -8px 100%,
+      0 -8px,
+      100% 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectionOverlay {
+    animation: none;
+  }
 }
