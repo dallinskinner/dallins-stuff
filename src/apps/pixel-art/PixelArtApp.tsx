@@ -8,9 +8,10 @@ import circleIcon from '../../assets/icons/circle.png'
 import eraserIcon from '../../assets/icons/eraser.png'
 import fillIcon from '../../assets/icons/fill.png'
 import squareIcon from '../../assets/icons/square.png'
+import lineIcon from '../../assets/icons/line.png'
 import styles from './PixelArtApp.module.css'
 
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line'
 
 const GRID_SIZES = [16, 32] as const
 const ZOOM_MIN = 1
@@ -109,6 +110,15 @@ export function PixelArtApp() {
               onClick={() => setTool('rectangle')}
             >
               <span className={styles.toolIcon} style={{ '--icon': `url(${squareIcon})` } as React.CSSProperties} />
+            </button>
+            <button
+              type="button"
+              className={styles.toolButton}
+              aria-pressed={tool === 'line'}
+              aria-label="Line"
+              onClick={() => setTool('line')}
+            >
+              <span className={styles.toolIcon} style={{ '--icon': `url(${lineIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"

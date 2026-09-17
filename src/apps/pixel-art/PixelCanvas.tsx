@@ -3,8 +3,8 @@ import type { PixelGrid, RGBA } from './pixelGrid'
 import { TRANSPARENT, cellsBetween, ellipseCells, floodFillCells, gridToImageData, rectangleCells } from './pixelGrid'
 import styles from './PixelCanvas.module.css'
 
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle'
-type ShapeTool = 'ellipse' | 'rectangle'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line'
+type ShapeTool = 'ellipse' | 'rectangle' | 'line'
 
 interface PixelCanvasProps {
   grid: PixelGrid
@@ -22,10 +22,11 @@ const SHAPE_CELLS: Record<ShapeTool, (r0: number, c0: number, r1: number, c1: nu
   {
     ellipse: ellipseCells,
     rectangle: rectangleCells,
+    line: cellsBetween,
   }
 
 function isShapeTool(tool: Tool): tool is ShapeTool {
-  return tool === 'ellipse' || tool === 'rectangle'
+  return tool === 'ellipse' || tool === 'rectangle' || tool === 'line'
 }
 
 function inBounds(cell: { row: number; col: number }, width: number, height: number): boolean {
@@ -43,6 +44,31 @@ function squareEndCell(
   const signRow = dRow < 0 ? -1 : 1
   const signCol = dCol < 0 ? -1 : 1
   return { row: start.row + signRow * d, col: start.col + signCol * d }
+}
+
+/** Snaps the drag end cell to the nearest 45°, anchored at `start`, for horizontal/vertical/diagonal lines. */
+function angleSnapEndCell(
+  start: { row: number; col: number },
+  cell: { row: number; col: number },
+): { row: number; col: number } {
+  const dRow = cell.row - start.row
+  const dCol = cell.col - start.col
+  if (dRow === 0 && dCol === 0) return cell
+  const angle = Math.round(Math.atan2(dRow, dCol) / (Math.PI / 4)) * (Math.PI / 4)
+  const dist = Math.hypot(dRow, dCol)
+  return {
+    row: start.row + Math.round(Math.sin(angle) * dist),
+    col: start.col + Math.round(Math.cos(angle) * dist),
+  }
+}
+
+const SHIFT_END_CELL: Record<
+  ShapeTool,
+  (start: { row: number; col: number }, cell: { row: number; col: number }) => { row: number; col: number }
+> = {
+  ellipse: squareEndCell,
+  rectangle: squareEndCell,
+  line: angleSnapEndCell,
 }
 
 export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(function PixelCanvas(
@@ -114,7 +140,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       const cell = getCell(e)
       const start = shapeStartRef.current
       if (!cell || !start) return
-      const end = e.shiftKey ? squareEndCell(start, cell) : cell
+      const end = e.shiftKey ? SHIFT_END_CELL[tool](start, cell) : cell
       setPreviewCells(SHAPE_CELLS[tool](start.row, start.col, end.row, end.col))
     } else {
       paintAt(e)
