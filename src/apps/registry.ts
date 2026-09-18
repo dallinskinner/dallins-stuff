@@ -3,11 +3,10 @@ import { AboutApp } from './AboutApp'
 import { ProjectsApp } from './ProjectsApp'
 import { ContactApp } from './ContactApp'
 import { TypographyApp } from './TypographyApp'
-import { ToolOneApp } from './ToolOneApp'
-import { ToolTwoApp } from './ToolTwoApp'
 import { PixelArtApp } from './pixel-art/PixelArtApp'
 import infoIcon from '../assets/icons/info.png'
 import pencilIcon from '../assets/icons/pencil.png'
+import documentIcon from '../assets/icons/document.png'
 
 export interface AppDefinition {
   id: string
@@ -21,17 +20,19 @@ export interface AppDefinition {
 
 export const apps: AppDefinition[] = [
   { id: 'about', label: 'About Me', icon: infoIcon, component: AboutApp },
-  { id: 'projects', label: 'Projects', component: ProjectsApp },
-  { id: 'typography', label: 'Typography', component: TypographyApp },
-  { id: 'contact', label: 'Contact', component: ContactApp },
+  { id: 'projects', label: 'Projects', icon: documentIcon, component: ProjectsApp },
+  { id: 'contact', label: 'Contact', icon: documentIcon, component: ContactApp },
   {
     id: 'tools',
     label: 'Tools',
     children: [
-      { id: 'tool-one', label: 'Tool One', component: ToolOneApp },
-      { id: 'tool-two', label: 'Tool Two', component: ToolTwoApp },
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 640 },
     ],
+  },
+  {
+    id: 'debug',
+    label: 'Debug',
+    children: [{ id: 'typography', label: 'Typography', icon: documentIcon, component: TypographyApp }],
   },
 ]
 
