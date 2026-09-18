@@ -45,7 +45,10 @@ export function DesktopIcon({ to, label, icon }: DesktopIconProps) {
         }
       }}
     >
-      <div className={styles.image} style={{ '--icon': `url(${image})` } as React.CSSProperties} />
+      <div
+        className={icon ? styles.image : `${styles.image} ${styles.folder}`}
+        style={{ '--icon': `url(${image})` } as React.CSSProperties}
+      />
       <div className={styles.label}>{label}</div>
     </Link>
   )

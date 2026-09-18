@@ -3,6 +3,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  width: var(--icon-cell-size);
   color: #fff;
   text-decoration: none;
 }
@@ -17,6 +18,10 @@
 
 .label {
   font-variation-settings: 'MONO' 50, 'DRKM' var(--font-drkm);
+  font-size: var(--icon-font-size);
+  text-align: center;
+  width: 100%;
+  overflow-wrap: break-word;
 }
 
 .image {
@@ -30,4 +35,8 @@
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-size: contain;
   image-rendering: pixelated;
+}
+
+.folder {
+  transform: translateX(2px);
 }

@@ -1,6 +1,6 @@
 .icons {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--icon-cell-size));
   gap: var(--icon-gap);
 }
 
