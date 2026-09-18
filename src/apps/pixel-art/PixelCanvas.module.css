@@ -75,8 +75,28 @@
   }
 }
 
+.handleLineSvg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.handleLine {
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-dasharray: 4 4;
+  animation: marchingAntsLine 0.4s linear infinite;
+}
+
+@keyframes marchingAntsLine {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .selectionOverlay {
+  .selectionOverlay,
+  .handleLine {
     animation: none;
   }
 }

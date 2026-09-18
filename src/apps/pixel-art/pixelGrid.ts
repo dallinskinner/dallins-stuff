@@ -22,6 +22,14 @@ export function cloneGrid(grid: PixelGrid): PixelGrid {
   return grid.map((row) => row.map((cell) => ({ ...cell })))
 }
 
+export function flipHorizontal(grid: PixelGrid): PixelGrid {
+  return grid.map((row) => [...row].reverse())
+}
+
+export function flipVertical(grid: PixelGrid): PixelGrid {
+  return [...grid].reverse()
+}
+
 /** Resizes to a new width/height, keeping the overlapping top-left region and filling new area as transparent. */
 export function resizeGrid(grid: PixelGrid, width: number, height: number): PixelGrid {
   const next = createGrid(width, height)

@@ -131,6 +131,8 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   const selectModeRef = useRef<'create' | 'move' | null>(null)
   const moveGrabRef = useRef<MoveGrab | null>(null)
   const [previewCells, setPreviewCells] = useState<Cell[]>([])
+  const [handleLine, setHandleLine] = useState<{ from: Cell; to: Cell } | null>(null)
+  const [anchorCell, setAnchorCell] = useState<Cell | null>(null)
   const [selection, setSelection] = useState<Rect | null>(null)
   const [floatingPreview, setFloatingPreview] = useState<FloatingSelection | null>(null)
   const [hoveringSelection, setHoveringSelection] = useState(false)
@@ -148,6 +150,8 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   if (prevTool !== tool) {
     setPrevTool(tool)
     if (previewCells.length > 0) setPreviewCells([])
+    if (handleLine) setHandleLine(null)
+    if (anchorCell) setAnchorCell(null)
     if (selection) setSelection(null)
     if (floatingPreview) setFloatingPreview(null)
     if (hoveringSelection) setHoveringSelection(false)
@@ -219,8 +223,10 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         curveRef.current = state
       } else if (state.phase === 'bend-start') {
         state.p1 = cell
+        setHandleLine({ from: state.p0, to: cell })
       } else if (state.phase === 'bend-end') {
         state.p2 = cell
+        setHandleLine({ from: state.p3, to: cell })
       }
       setPreviewCells(curveCells(state))
       return
@@ -284,8 +290,10 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         state.p2 = state.p3
       } else if (state.phase === 'bend-start') {
         state.p1 = cell
+        setHandleLine({ from: state.p0, to: cell })
       } else {
         state.p2 = cell
+        setHandleLine({ from: state.p3, to: cell })
       }
       setPreviewCells(curveCells(state))
       return
@@ -332,8 +340,10 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       if (!state) return
       if (state.phase === 'line') {
         state.phase = 'bend-start'
+        setAnchorCell(state.p0)
       } else if (state.phase === 'bend-start') {
         state.phase = 'bend-end'
+        setAnchorCell(state.p3)
       } else {
         for (const cell of previewCells) {
           if (!inBounds(cell, width, height)) continue
@@ -341,7 +351,9 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         }
         curveRef.current = null
         setPreviewCells([])
+        setAnchorCell(null)
       }
+      setHandleLine(null)
       return
     }
     if (tool === 'select') {
@@ -419,6 +431,30 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
               '--sel-y': `${activeSelectionRect.rowMin * cellSize}px`,
               '--sel-w': `${(activeSelectionRect.colMax - activeSelectionRect.colMin + 1) * cellSize}px`,
               '--sel-h': `${(activeSelectionRect.rowMax - activeSelectionRect.rowMin + 1) * cellSize}px`,
+            } as React.CSSProperties
+          }
+        />
+      )}
+      {handleLine && (
+        <svg className={styles.handleLineSvg} width={width * cellSize} height={height * cellSize}>
+          <line
+            className={styles.handleLine}
+            x1={(handleLine.from.col + 0.5) * cellSize}
+            y1={(handleLine.from.row + 0.5) * cellSize}
+            x2={(handleLine.to.col + 0.5) * cellSize}
+            y2={(handleLine.to.row + 0.5) * cellSize}
+          />
+        </svg>
+      )}
+      {anchorCell && (
+        <div
+          className={styles.selectionOverlay}
+          style={
+            {
+              '--sel-x': `${anchorCell.col * cellSize}px`,
+              '--sel-y': `${anchorCell.row * cellSize}px`,
+              '--sel-w': `${cellSize}px`,
+              '--sel-h': `${cellSize}px`,
             } as React.CSSProperties
           }
         />

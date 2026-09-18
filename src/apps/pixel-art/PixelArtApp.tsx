@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { GRID_HEIGHT, GRID_WIDTH, CELL_SIZE, hexToRgba, imageDataToGrid } from './pixelGrid'
+import { useEffect, useRef, useState } from 'react'
+import { GRID_HEIGHT, GRID_WIDTH, CELL_SIZE, flipHorizontal, flipVertical, hexToRgba, imageDataToGrid } from './pixelGrid'
 import { usePixelGrid } from './usePixelGrid'
 import { PixelCanvas } from './PixelCanvas'
 import { PixelPreview } from './PixelPreview'
@@ -11,6 +11,9 @@ import squareIcon from '../../assets/icons/square.png'
 import lineIcon from '../../assets/icons/line.png'
 import curveIcon from '../../assets/icons/curve.png'
 import selectIcon from '../../assets/icons/select.png'
+import undoIcon from '../../assets/icons/undo.png'
+import redoIcon from '../../assets/icons/redo.png'
+import trashIcon from '../../assets/icons/trash.png'
 import styles from './PixelArtApp.module.css'
 
 type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select'
@@ -27,19 +30,41 @@ export function PixelArtApp() {
     GRID_HEIGHT,
   )
   const [colorHex, setColorHex] = useState('#000000')
+  const [fileName, setFileName] = useState('pixel-art')
   const [tool, setTool] = useState<Tool>('brush')
   const [showGrid, setShowGrid] = useState(true)
   const [zoom, setZoom] = useState<number>(1)
+  const [transformOpen, setTransformOpen] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const transformRef = useRef<HTMLDivElement>(null)
 
   const height = grid.length
   const width = grid[0]?.length ?? 0
   const cellSize = Math.floor(MAX_DISPLAY / Math.max(width, height))
 
+  useEffect(() => {
+    if (!transformOpen) return
+    function handlePointerDown(e: PointerEvent) {
+      if (!transformRef.current?.contains(e.target as Node)) setTransformOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [transformOpen])
+
   function handleSizeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const size = Number(e.target.value)
     resize(size, size)
+  }
+
+  function handleFlipHorizontal() {
+    loadGrid(flipHorizontal(grid))
+    setTransformOpen(false)
+  }
+
+  function handleFlipVertical() {
+    loadGrid(flipVertical(grid))
+    setTransformOpen(false)
   }
 
   function handleSave() {
@@ -50,7 +75,7 @@ export function PixelArtApp() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'pixel-art.png'
+      link.download = `${fileName.trim() || 'pixel-art'}.png`
       link.click()
       URL.revokeObjectURL(url)
     }, 'image/png')
@@ -172,21 +197,32 @@ export function PixelArtApp() {
           onPaintCell={paintCell}
         />
         <div className={styles.actions}>
-          <button type="button" onClick={clear}>
-            Clear
-          </button>
-          <button type="button" onClick={undo} disabled={!canUndo}>
-            Undo
-          </button>
-          <button type="button" onClick={redo} disabled={!canRedo}>
-            Redo
-          </button>
-          <button type="button" onClick={handleSave}>
-            Save as PNG
-          </button>
-          <button type="button" onClick={() => fileInputRef.current?.click()}>
-            Load PNG
-          </button>
+          <div className={styles.buttonRow}>
+            <button type="button" onClick={undo} disabled={!canUndo} aria-label="Undo">
+              <span className={styles.historyIcon} style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
+            </button>
+            <button type="button" onClick={redo} disabled={!canRedo} aria-label="Redo">
+              <span className={styles.historyIcon} style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
+            </button>
+            <button type="button" onClick={clear} aria-label="Clear">
+              <span className={styles.historyIcon} style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
+            </button>
+          </div>
+          <input
+            type="text"
+            value={fileName}
+            onChange={(e) => setFileName(e.target.value)}
+            placeholder="pixel-art"
+            className={styles.fileNameInput}
+          />
+          <div className={styles.buttonRow}>
+            <button type="button" onClick={() => fileInputRef.current?.click()}>
+              Load
+            </button>
+            <button type="button" onClick={handleSave}>
+              Save
+            </button>
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -194,6 +230,25 @@ export function PixelArtApp() {
             onChange={handleLoad}
             className={styles.hiddenFileInput}
           />
+          <div className={styles.dropdown} ref={transformRef}>
+            <button
+              type="button"
+              aria-expanded={transformOpen}
+              onClick={() => setTransformOpen((open) => !open)}
+            >
+              Transform ▾
+            </button>
+            {transformOpen && (
+              <div className={styles.dropdownMenu}>
+                <button type="button" onClick={handleFlipHorizontal}>
+                  Flip H
+                </button>
+                <button type="button" onClick={handleFlipVertical}>
+                  Flip V
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className={styles.previewCorner}>
           <label className={styles.zoomSlider}>
