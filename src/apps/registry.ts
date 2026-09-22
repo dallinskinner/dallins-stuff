@@ -4,6 +4,7 @@ import { ProjectsApp } from './ProjectsApp'
 import { ContactApp } from './ContactApp'
 import { TypographyApp } from './TypographyApp'
 import { PixelArtApp } from './pixel-art/PixelArtApp'
+import { ImageToolsApp } from './image-tools/ImageToolsApp'
 import infoIcon from '../assets/icons/info.png'
 import pencilIcon from '../assets/icons/pencil.png'
 import documentIcon from '../assets/icons/document.png'
@@ -27,6 +28,7 @@ export const apps: AppDefinition[] = [
     label: 'Tools',
     children: [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 640 },
+      { id: 'image-tools', label: 'Image Tools', icon: documentIcon, component: ImageToolsApp, windowMaxWidth: 760 },
     ],
   },
   {
