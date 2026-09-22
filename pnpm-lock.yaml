@@ -11,6 +11,9 @@ importers:
       dialkit:
         specifier: ^2.0.2
         version: 2.0.2(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      fast-simplex-noise:
+        specifier: ^4.0.0
+        version: 4.0.0
       motion:
         specifier: ^13.2.0
         version: 13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -321,6 +324,9 @@ packages:
         optional: true
       vue:
         optional: true
+
+  fast-simplex-noise@4.0.0:
+    resolution: {integrity: sha512-2zRCJkPdMnPyXNEeI5IYgH555Nbd/j9nC8YVoOm5dmFDjqxuLD888nEAGB8cSUIyxLlNHCZVlZ7AO27Fm3boJA==}
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -698,6 +704,8 @@ snapshots:
       motion: 13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
+
+  fast-simplex-noise@4.0.0: {}
 
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:

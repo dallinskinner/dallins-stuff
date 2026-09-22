@@ -6,7 +6,7 @@ import closeIcon from '../assets/icons/close.png'
 
 interface WindowProps {
   title: string
-  maxWidth?: number
+  maxWidth?: number | string
   children: React.ReactNode
 }
 
@@ -48,7 +48,7 @@ export function Window({ title, maxWidth, children }: WindowProps) {
         {
           '--x': `${pos.x}px`,
           '--y': `${pos.y}px`,
-          ...(maxWidth ? { '--window-max-width': `${maxWidth}px` } : {}),
+          ...(maxWidth ? { '--window-max-width': typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth } : {}),
         } as React.CSSProperties
       }
     >

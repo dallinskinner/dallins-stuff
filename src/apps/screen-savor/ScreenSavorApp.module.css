@@ -1,0 +1,187 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+}
+
+.app button {
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.workspace {
+  display: flex;
+  gap: var(--padding);
+  align-items: flex-start;
+}
+
+.canvas {
+  position: relative;
+}
+
+.render {
+  margin: 0;
+  padding: var(--padding);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--content-background);
+  color: var(--foreground);
+  font-family: 'ABC Areal Superfamily', ui-monospace, Menlo, Consolas, monospace;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  white-space: pre;
+  max-width: none;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.copyButton {
+  position: absolute;
+  top: calc(var(--padding) / 2);
+  right: calc(var(--padding) / 2);
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 12px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.controls label,
+.controls button {
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.settingsGroup {
+  margin: 0;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.settingsGroup summary {
+  cursor: pointer;
+  padding: var(--padding);
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  user-select: none;
+}
+
+.settingsGroup summary::marker {
+  color: var(--foreground);
+}
+
+.groupContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  padding: 0 var(--padding) var(--padding);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.rampInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  padding: 0.4em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+  line-height: 1.3;
+  resize: vertical;
+}
+
+.seedInput {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.selectInput {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.bottomBar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  width: 100%;
+  padding-top: var(--padding);
+}
+
+.bottomBar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--padding));
+  right: calc(-1 * var(--padding));
+  height: 1px;
+  background: var(--border);
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  flex-shrink: 0;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.checkboxField input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+.playbackRow {
+  display: flex;
+  align-items: center;
+  gap: var(--padding);
+}
+
+.scrubber {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.frameCount {
+  flex-shrink: 0;
+  min-width: 6ch;
+  text-align: right;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}

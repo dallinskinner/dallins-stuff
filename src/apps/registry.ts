@@ -4,6 +4,7 @@ import { ProjectsApp } from './ProjectsApp'
 import { ContactApp } from './ContactApp'
 import { TypographyApp } from './TypographyApp'
 import { PixelArtApp } from './pixel-art/PixelArtApp'
+import { ScreenSavorApp } from './screen-savor/ScreenSavorApp'
 import { ImageToolsApp } from './image-tools/ImageToolsApp'
 import infoIcon from '../assets/icons/info.png'
 import pencilIcon from '../assets/icons/pencil.png'
@@ -15,8 +16,8 @@ export interface AppDefinition {
   icon?: string
   component?: ComponentType
   children?: AppDefinition[]
-  /** Overrides Window's default 600px cap, for apps too wide to fit it. */
-  windowMaxWidth?: number
+  /** Overrides Window's default 600px cap, for apps too wide to fit it. A number is in px; a string is used as-is (e.g. a viewport-relative unit for apps that should grow freely). */
+  windowMaxWidth?: number | string
 }
 
 export const apps: AppDefinition[] = [
@@ -28,6 +29,7 @@ export const apps: AppDefinition[] = [
     label: 'Tools',
     children: [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 640 },
+      { id: 'screen-savor', label: 'Screen Flavor', icon: documentIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
       { id: 'image-tools', label: 'Image Tools', icon: documentIcon, component: ImageToolsApp, windowMaxWidth: 760 },
     ],
   },
