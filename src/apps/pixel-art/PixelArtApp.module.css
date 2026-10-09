@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: var(--padding);
   align-items: flex-start;
+  height: 100%;
 }
 
 .app button,
@@ -15,6 +16,9 @@
   position: relative;
   display: flex;
   gap: var(--padding);
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .actions {
@@ -151,14 +155,95 @@
   image-rendering: pixelated;
 }
 
+.ditherOption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.colorRow {
+  display: flex;
+  gap: 4px;
+  margin-top: auto;
+}
+
 .activeColor {
   display: block;
   position: relative;
-  margin-top: auto;
+  flex: 1;
   height: 24px;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) / 2);
   cursor: pointer;
+}
+
+.paletteDropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.paletteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+}
+
+.paletteButton[aria-expanded='true'] {
+  border-color: var(--accent);
+}
+
+.paletteIcon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: conic-gradient(#e05252 0deg 90deg, #4caf78 90deg 180deg, #4a90d9 180deg 270deg, #e0c040 270deg 360deg);
+}
+
+.palettePopover {
+  position: absolute;
+  left: calc(100% + 8px);
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  width: 140px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+}
+
+.paletteSwatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  cursor: pointer;
+}
+
+.paletteSwatch[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.paletteEmpty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--foreground);
+  opacity: 0.6;
 }
 
 .fileNameInput {
@@ -202,5 +287,60 @@
 
 .zoomSlider input[type='range'] {
   width: 100%;
+  accent-color: var(--accent);
+}
+
+.canvasViewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: safe center;
+  justify-content: safe center;
+}
+
+.canvasZoomControl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.canvasZoomControl button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+}
+
+.canvasZoomControl button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.canvasZoomControl span {
+  min-width: 4.5em;
+  text-align: center;
+}
+
+.overBudget {
+  color: #e05252;
+}
+
+.referenceControl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.referenceControl input[type='range'] {
+  width: 80px;
   accent-color: var(--accent);
 }

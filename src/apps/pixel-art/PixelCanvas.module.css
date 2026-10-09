@@ -40,6 +40,71 @@
   background-size: var(--cell-size) var(--cell-size);
 }
 
+.reference {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: var(--reference-opacity);
+  transform: translate(var(--reference-x), var(--reference-y)) scale(var(--reference-scale));
+  pointer-events: none;
+  user-select: none;
+}
+
+.referenceAdjusting {
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+
+.tintCanvas {
+  position: absolute;
+  inset: 0;
+  width: var(--display-width);
+  height: var(--display-height);
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.tileOverlay,
+.regionOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tileOverlay {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 1px, transparent 1px);
+  background-size: var(--tile-size) var(--tile-size);
+}
+
+.regionOverlay {
+  background-image:
+    linear-gradient(to right, var(--accent) 2px, transparent 2px),
+    linear-gradient(to bottom, var(--accent) 2px, transparent 2px);
+  background-size: var(--region-size) var(--region-size);
+}
+
+.rejectFlash {
+  position: absolute;
+  left: var(--sel-x);
+  top: var(--sel-y);
+  width: var(--sel-w);
+  height: var(--sel-h);
+  pointer-events: none;
+  background: rgba(255, 40, 40, 0.5);
+  animation: rejectFade 0.5s ease-out forwards;
+}
+
+@keyframes rejectFade {
+  to {
+    opacity: 0;
+  }
+}
+
 .selectionOverlay {
   position: absolute;
   left: var(--sel-x);

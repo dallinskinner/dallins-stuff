@@ -5,13 +5,15 @@
   --x: 0px;
   --y: 0px;
   transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
+  box-sizing: border-box;
   min-width: 400px;
+  min-height: 200px;
   max-width: var(--window-max-width, 600px);
   max-height: 100vh;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--background);
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -61,7 +63,27 @@
 }
 
 .content {
+  flex: 1;
+  min-height: 0;
   padding: var(--padding);
   background: var(--content-background);
   overflow: auto;
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-bottom-right-radius: var(--radius);
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent 4px
+  );
 }

@@ -12,7 +12,6 @@ export const TRANSPARENT: RGBA = { r: 0, g: 0, b: 0, a: 0 }
 
 export const GRID_WIDTH = 32
 export const GRID_HEIGHT = 32
-export const CELL_SIZE = 12
 
 export function createGrid(width: number, height: number, fill: RGBA = TRANSPARENT): PixelGrid {
   return Array.from({ length: height }, () => Array.from({ length: width }, () => ({ ...fill })))
@@ -43,13 +42,14 @@ export function resizeGrid(grid: PixelGrid, width: number, height: number): Pixe
   return next
 }
 
-export function gridToImageData(grid: PixelGrid): ImageData {
+/** Renders the grid to ImageData; with `backdrop`, fully transparent pixels show that color instead (the NES backdrop). */
+export function gridToImageData(grid: PixelGrid, backdrop?: RGBA): ImageData {
   const height = grid.length
   const width = grid[0]?.length ?? 0
   const data = new Uint8ClampedArray(width * height * 4)
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
-      const { r, g, b, a } = grid[row][col]
+      const { r, g, b, a } = backdrop && grid[row][col].a === 0 ? backdrop : grid[row][col]
       const i = (row * width + col) * 4
       data[i] = r
       data[i + 1] = g
@@ -227,6 +227,24 @@ export function hexToRgba(hex: string, alpha = 255): RGBA {
   return { r, g, b, a: alpha }
 }
 
+export function rgbaToHex({ r, g, b }: RGBA): string {
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+/** Distinct non-transparent colors currently painted on the grid, most-used first. */
+export function usedColors(grid: PixelGrid): string[] {
+  const counts = new Map<string, number>()
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell.a === 0) continue
+      const hex = rgbaToHex(cell)
+      counts.set(hex, (counts.get(hex) ?? 0) + 1)
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([hex]) => hex)
+}
+
 /** Bresenham line between two cells, inclusive of both ends — keeps fast drags gap-free. */
 export function cellsBetween(r0: number, c0: number, r1: number, c1: number): { row: number; col: number }[] {
   const cells: { row: number; col: number }[] = []
@@ -284,4 +302,109 @@ export function bezierCells(
   }
 
   return [...cells.values()]
+}
+
+export type DitherPattern = 'bayer' | 'lines' | 'diagonal' | 'dots'
+
+/** Threshold matrix for a pattern: each cell's value is the rank at which it flips to the end color, and
+ *  `levels` is how many distinct ranks there are (the divisor that normalizes ranks into 0..1). */
+interface Threshold {
+  matrix: number[][]
+  levels: number
+}
+
+const thresholdCache = new Map<string, Threshold>()
+
+/** Ordered-dither threshold matrix of side `size` (a power of two), built by B(2n) = [[4B, 4B+2], [4B+3, 4B+1]]. */
+function bayerMatrix(size: number): number[][] {
+  let m = [[0]]
+  for (let n = 1; n < size; n *= 2) {
+    const next: number[][] = Array.from({ length: n * 2 }, () => new Array<number>(n * 2).fill(0))
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        next[r][c] = 4 * m[r][c]
+        next[r][c + n] = 4 * m[r][c] + 2
+        next[r + n][c] = 4 * m[r][c] + 3
+        next[r + n][c + n] = 4 * m[r][c] + 1
+      }
+    }
+    m = next
+  }
+  return m
+}
+
+/** Reverses the low bits of `i` (for a power-of-two `size`), spreading consecutive indices as far apart as possible. */
+function bitReverse(i: number, size: number): number {
+  let result = 0
+  for (let bit = size >> 1, src = i; bit > 0; bit >>= 1, src >>= 1) {
+    if (src & 1) result |= bit
+  }
+  return result
+}
+
+/** Clustered-dot (halftone) matrix: cells nearest the tile's center flip first, so the end color grows as a dot. */
+function dotMatrix(size: number): number[][] {
+  const center = size / 2
+  const order = Array.from({ length: size * size }, (_, i) => {
+    const row = Math.floor(i / size)
+    const col = i % size
+    const dy = row + 0.5 - center
+    const dx = col + 0.5 - center
+    return { row, col, distance: dx * dx + dy * dy, angle: Math.atan2(dy, dx) }
+  }).sort((a, b) => a.distance - b.distance || a.angle - b.angle)
+  const matrix = Array.from({ length: size }, () => new Array<number>(size).fill(0))
+  order.forEach(({ row, col }, rank) => {
+    matrix[row][col] = rank
+  })
+  return matrix
+}
+
+function thresholdFor(pattern: DitherPattern, size: number): Threshold {
+  const key = `${pattern}:${size}`
+  const cached = thresholdCache.get(key)
+  if (cached) return cached
+  let threshold: Threshold
+  if (pattern === 'bayer') {
+    threshold = { matrix: bayerMatrix(size), levels: size * size }
+  } else if (pattern === 'dots') {
+    threshold = { matrix: dotMatrix(size), levels: size * size }
+  } else {
+    // Lines run along one axis: the rank depends only on the row (horizontal lines) or on row + col (diagonal hatch).
+    const along = (row: number, col: number) => (pattern === 'lines' ? row : row + col) % size
+    const matrix = Array.from({ length: size }, (_, row) =>
+      Array.from({ length: size }, (_, col) => bitReverse(along(row, col), size)),
+    )
+    threshold = { matrix, levels: size }
+  }
+  thresholdCache.set(key, threshold)
+  return threshold
+}
+
+/** Dithered linear gradient along the axis from (r0, c0) to (r1, c1), covering every cell in `bounds`.
+ *  `useSecondary` marks cells that take the gradient's end color. The pattern is anchored to absolute
+ *  cell coordinates so overlapping gradients tile consistently. */
+export function gradientCells(
+  r0: number,
+  c0: number,
+  r1: number,
+  c1: number,
+  pattern: DitherPattern,
+  size: number,
+  bounds: { rowMin: number; rowMax: number; colMin: number; colMax: number },
+): { row: number; col: number; useSecondary: boolean }[] {
+  const dRow = r1 - r0
+  const dCol = c1 - c0
+  const lengthSq = dRow * dRow + dCol * dCol
+  if (lengthSq === 0) return []
+
+  const { matrix, levels } = thresholdFor(pattern, size)
+  const cells: { row: number; col: number; useSecondary: boolean }[] = []
+  for (let row = bounds.rowMin; row <= bounds.rowMax; row++) {
+    for (let col = bounds.colMin; col <= bounds.colMax; col++) {
+      const t = Math.min(1, Math.max(0, ((row - r0) * dRow + (col - c0) * dCol) / lengthSq))
+      const threshold = (matrix[row % size][col % size] + 0.5) / levels
+      cells.push({ row, col, useSecondary: t > threshold })
+    }
+  }
+  return cells
 }

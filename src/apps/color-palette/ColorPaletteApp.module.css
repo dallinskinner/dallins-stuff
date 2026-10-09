@@ -1,0 +1,115 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+}
+
+.app button,
+.app code {
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--padding);
+}
+
+.actions button:disabled,
+.remove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.workspace {
+  display: flex;
+  gap: var(--padding);
+  align-items: stretch;
+}
+
+.canvas {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.swatch {
+  flex: var(--share) 1 0;
+  min-height: 0;
+  background: var(--color);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  width: 270px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.colorRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: calc(var(--padding) / 2);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--color);
+}
+
+.remove {
+  margin-left: auto;
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 5.5em 1fr 4em;
+  gap: 4px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.slider input {
+  min-width: 0;
+}
+
+.chipInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.empty {
+  margin: auto;
+  opacity: 0.6;
+}
+
+.readout {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

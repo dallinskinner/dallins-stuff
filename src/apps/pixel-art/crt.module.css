@@ -1,0 +1,29 @@
+/* Presentation-only CRT look, layered over a canvas without touching the pixels underneath.
+   --crt-line is the on-screen height of one pixel row, so each scanline lines up with a row of art. */
+.image {
+  filter: saturate(1.25) contrast(1.1) brightness(1.1);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.3) 100%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--crt-line) * 0.55),
+      rgba(0, 0, 0, 0.35) calc(var(--crt-line) * 0.55),
+      rgba(0, 0, 0, 0.35) var(--crt-line)
+    ),
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 0, 0, 0.07) 0,
+      rgba(255, 0, 0, 0.07) 1px,
+      rgba(0, 255, 0, 0.07) 1px,
+      rgba(0, 255, 0, 0.07) 2px,
+      rgba(0, 0, 255, 0.07) 2px,
+      rgba(0, 0, 255, 0.07) 3px
+    );
+}

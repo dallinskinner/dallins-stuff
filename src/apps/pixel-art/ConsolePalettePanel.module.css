@@ -1,0 +1,71 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) / 2);
+}
+
+.row[data-active='true'] {
+  border-color: var(--accent);
+}
+
+.swatch,
+.masterSwatch {
+  flex: 1;
+  height: 22px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--color);
+  cursor: pointer;
+}
+
+.swatch[data-transparent='true'] {
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 8px 8px;
+}
+
+.swatch[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.swatch[data-secondary='true'] {
+  outline: 2px dashed var(--accent);
+  outline-offset: 1px;
+}
+
+.swatch[data-secondary='true'][aria-pressed='true'] {
+  outline-style: solid;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.master {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: 2px;
+}
+
+.masterSwatch {
+  flex: none;
+  height: 20px;
+}

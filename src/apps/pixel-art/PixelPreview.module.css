@@ -9,6 +9,10 @@
   border-radius: calc(var(--radius) / 2);
 }
 
+.screen {
+  position: relative;
+}
+
 .preview {
   display: block;
   width: var(--zoom-width);

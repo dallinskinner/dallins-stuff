@@ -1,19 +1,21 @@
 import { forwardRef, useEffect, useRef, useState } from 'react'
-import type { PixelGrid, RGBA } from './pixelGrid'
+import type { DitherPattern, PixelGrid, RGBA } from './pixelGrid'
 import {
   TRANSPARENT,
   bezierCells,
   cellsBetween,
   ellipseCells,
   floodFillCells,
+  gradientCells,
   gridToImageData,
   rectangleCells,
 } from './pixelGrid'
 import styles from './PixelCanvas.module.css'
+import crtStyles from './crt.module.css'
 
 type Cell = { row: number; col: number }
 type Rect = { rowMin: number; rowMax: number; colMin: number; colMax: number }
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select' | 'gradient'
 type ShapeTool = 'ellipse' | 'rectangle' | 'line'
 
 /** A curve is drawn in three drags: the line's two anchors, then each anchor's control-point handle. */
@@ -38,6 +40,29 @@ interface MoveGrab {
   originCol: number
 }
 
+export interface ReferenceImage {
+  url: string
+  opacity: number
+  /** Offset as a fraction of the canvas size, so the image stays put against the art as the canvas zoom changes. */
+  x: number
+  y: number
+  scale: number
+  /** While true the image takes the pointer so it can be dragged, and drawing is paused. */
+  adjusting: boolean
+  onMove: (x: number, y: number) => void
+}
+
+export interface HardwareOverlay {
+  regionSize: number
+  /** Subpalette owning each region, or null while empty. */
+  owners: (number | null)[][]
+  showTiles: boolean
+  showRegions: boolean
+  rejection: { row: number; col: number; id: number } | null
+}
+
+const TINTS = ['224, 82, 82', '76, 175, 120', '74, 144, 217', '224, 192, 64', '176, 96, 208', '64, 200, 200', '224, 128, 64', '160, 160, 160']
+
 interface PixelCanvasProps {
   grid: PixelGrid
   width: number
@@ -45,9 +70,23 @@ interface PixelCanvasProps {
   cellSize: number
   tool: Tool
   color: RGBA
+  /** The gradient tool's end color. */
+  secondaryColor: RGBA
+  /** The gradient tool's dither pattern, and the side of its repeating tile (2, 4, 8 or 16). */
+  ditherPattern: DitherPattern
+  ditherSize: number
   showGrid: boolean
+  /** Presentation mode: draws the art with a CRT look and hides the editing overlays. Display-only. */
+  crt?: boolean
+  /** Color shown through transparent pixels (the NES backdrop); omit to keep them transparent. */
+  backdrop?: RGBA
+  /** A tracing image drawn over the canvas (not part of the artwork or the saved PNG); omit for none. */
+  reference?: ReferenceImage
+  /** Hardware-mode overlays; omit in freestyle. */
+  hardware?: HardwareOverlay
   onBeginStroke: () => void
   onPaintCell: (row: number, col: number, color: RGBA) => void
+  onPaintCells: (cells: Cell[], color: RGBA) => void
 }
 
 const SHAPE_CELLS: Record<ShapeTool, (r0: number, c0: number, r1: number, c1: number) => { row: number; col: number }[]> =
@@ -121,7 +160,7 @@ const SHIFT_END_CELL: Record<
 }
 
 export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(function PixelCanvas(
-  { grid, width, height, cellSize, tool, color, showGrid, onBeginStroke, onPaintCell },
+  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, crt, backdrop, reference, hardware, onBeginStroke, onPaintCell, onPaintCells },
   ref,
 ) {
   const isPaintingRef = useRef(false)
@@ -131,6 +170,8 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   const selectModeRef = useRef<'create' | 'move' | null>(null)
   const moveGrabRef = useRef<MoveGrab | null>(null)
   const [previewCells, setPreviewCells] = useState<Cell[]>([])
+  const gradientCanvasRef = useRef<HTMLCanvasElement>(null)
+  const gradientFrameRef = useRef(0)
   const [handleLine, setHandleLine] = useState<{ from: Cell; to: Cell } | null>(null)
   const [anchorCell, setAnchorCell] = useState<Cell | null>(null)
   const [selection, setSelection] = useState<Rect | null>(null)
@@ -144,15 +185,21 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     curveRef.current = null
     selectModeRef.current = null
     moveGrabRef.current = null
+    cancelAnimationFrame(gradientFrameRef.current)
   }, [tool])
+
+  useEffect(() => () => cancelAnimationFrame(gradientFrameRef.current), [])
 
   const [prevTool, setPrevTool] = useState(tool)
   if (prevTool !== tool) {
+    const previous = prevTool
     setPrevTool(tool)
     if (previewCells.length > 0) setPreviewCells([])
     if (handleLine) setHandleLine(null)
     if (anchorCell) setAnchorCell(null)
-    if (selection) setSelection(null)
+    // The gradient tool clips to the selection, so a selection survives switching between it and the select tool.
+    const keepSelection = (previous === 'select' && tool === 'gradient') || (previous === 'gradient' && tool === 'select')
+    if (selection && !keepSelection) setSelection(null)
     if (floatingPreview) setFloatingPreview(null)
     if (hoveringSelection) setHoveringSelection(false)
   }
@@ -163,13 +210,17 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     const canvas = (ref as React.RefObject<HTMLCanvasElement>).current
     const ctx = canvas?.getContext('2d')
     if (!ctx) return
-    ctx.putImageData(gridToImageData(grid), 0, 0)
+    ctx.putImageData(gridToImageData(grid, backdrop), 0, 0)
     if (previewCells.length > 0) {
-      ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`
+      // A transparent paint color (the backdrop slot) would draw nothing, so preview it by inverting what's underneath.
+      const erasing = color.a === 0
+      ctx.globalCompositeOperation = erasing ? 'difference' : 'source-over'
+      ctx.fillStyle = erasing ? '#ffffff' : `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`
       for (const cell of previewCells) {
         if (!inBounds(cell, width, height)) continue
         ctx.fillRect(cell.col, cell.row, 1, 1)
       }
+      ctx.globalCompositeOperation = 'source-over'
     }
     if (floatingPreview) {
       for (let r = 0; r < floatingPreview.data.length; r++) {
@@ -183,7 +234,81 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         }
       }
     }
-  }, [grid, ref, previewCells, color, width, height, floatingPreview])
+  }, [grid, ref, previewCells, color, width, height, floatingPreview, backdrop])
+
+  // Tints each region by the subpalette it's locked to, so the player can see where one palette's reach ends.
+  const tintRef = useRef<HTMLCanvasElement>(null)
+  const showRegions = hardware?.showRegions
+  const owners = hardware?.owners
+  const regionSize = hardware?.regionSize ?? 0
+  useEffect(() => {
+    const ctx = tintRef.current?.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, width, height)
+    if (!showRegions || !owners) return
+    owners.forEach((row, br) =>
+      row.forEach((owner, bc) => {
+        if (owner === null) return
+        ctx.fillStyle = `rgba(${TINTS[owner % TINTS.length]}, 0.3)`
+        ctx.fillRect(bc * regionSize, br * regionSize, regionSize, regionSize)
+      }),
+    )
+  }, [showRegions, owners, regionSize, width, height])
+
+  const referenceDragRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null)
+
+  function handleReferencePointerDown(e: React.PointerEvent<HTMLImageElement>) {
+    if (!reference || e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    referenceDragRef.current = { pointerX: e.clientX, pointerY: e.clientY, x: reference.x, y: reference.y }
+  }
+
+  function handleReferencePointerMove(e: React.PointerEvent<HTMLImageElement>) {
+    const drag = referenceDragRef.current
+    if (!drag || !reference) return
+    reference.onMove(
+      drag.x + (e.clientX - drag.pointerX) / (width * cellSize),
+      drag.y + (e.clientY - drag.pointerY) / (height * cellSize),
+    )
+  }
+
+  /** The dither the gradient would produce, drawn straight into an overlay canvas (not React state, and not
+   *  the artwork canvas), and coalesced to one draw per animation frame so a fast drag can't queue work. */
+  function previewGradient(start: Cell, end: Cell) {
+    cancelAnimationFrame(gradientFrameRef.current)
+    gradientFrameRef.current = requestAnimationFrame(() => {
+      const ctx = gradientCanvasRef.current?.getContext('2d')
+      if (!ctx) return
+      const image = ctx.createImageData(width, height)
+      const bounds = selection ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
+      for (const cell of gradientCells(start.row, start.col, end.row, end.col, ditherPattern, ditherSize, bounds)) {
+        const paint = cell.useSecondary ? secondaryColor : color
+        const i = (cell.row * width + cell.col) * 4
+        image.data[i] = paint.r
+        image.data[i + 1] = paint.g
+        image.data[i + 2] = paint.b
+        image.data[i + 3] = paint.a
+      }
+      ctx.putImageData(image, 0, 0)
+    })
+  }
+
+  function clearGradientPreview() {
+    cancelAnimationFrame(gradientFrameRef.current)
+    gradientCanvasRef.current?.getContext('2d')?.clearRect(0, 0, width, height)
+  }
+
+  /** Dithers the gradient into the selection (or whole canvas) in one pass; only run on release, never per pointer move. */
+  function commitGradient(start: Cell, end: Cell) {
+    const bounds = selection ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
+    const primary: Cell[] = []
+    const secondary: Cell[] = []
+    for (const cell of gradientCells(start.row, start.col, end.row, end.col, ditherPattern, ditherSize, bounds)) {
+      ;(cell.useSecondary ? secondary : primary).push(cell)
+    }
+    onPaintCells(primary, color)
+    onPaintCells(secondary, secondaryColor)
+  }
 
   function getCell(e: React.PointerEvent<HTMLCanvasElement>): { row: number; col: number } | null {
     const canvas = (ref as React.RefObject<HTMLCanvasElement>).current
@@ -261,7 +386,12 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     }
 
     onBeginStroke()
-    if (isShapeTool(tool)) {
+    if (tool === 'gradient') {
+      isPaintingRef.current = true
+      shapeStartRef.current = cell
+      setHandleLine({ from: cell, to: cell })
+      setAnchorCell(cell)
+    } else if (isShapeTool(tool)) {
       isPaintingRef.current = true
       shapeStartRef.current = cell
       setPreviewCells([cell])
@@ -317,6 +447,17 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         const col = grab.originCol + (cell.col - grab.startCell.col)
         setFloatingPreview((prev) => (prev ? { ...prev, row, col } : prev))
       }
+      return
+    }
+    if (tool === 'gradient') {
+      const cell = getCell(e)
+      const start = shapeStartRef.current
+      if (!cell || !start) return
+      // Just the drag axis while dragging; the dither is computed once on release. Skip moves within the same cell.
+      const end = e.shiftKey ? angleSnapEndCell(start, cell) : cell
+      if (handleLine && handleLine.to.row === end.row && handleLine.to.col === end.col) return
+      setHandleLine({ from: start, to: end })
+      previewGradient(start, end)
       return
     }
     if (isShapeTool(tool)) {
@@ -382,6 +523,16 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       moveGrabRef.current = null
       return
     }
+    if (tool === 'gradient') {
+      const start = shapeStartRef.current
+      const end = handleLine?.to
+      if (start && end) commitGradient(start, end)
+      shapeStartRef.current = null
+      setHandleLine(null)
+      setAnchorCell(null)
+      clearGradientPreview()
+      return
+    }
     if (isShapeTool(tool)) {
       for (const cell of previewCells) {
         if (!inBounds(cell, width, height)) continue
@@ -407,21 +558,66 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         ref={ref}
         width={width}
         height={height}
-        className={
-          tool === 'brush'
-            ? `${styles.canvas} ${styles.brushCursor}`
-            : tool === 'eraser'
-              ? `${styles.canvas} ${styles.eraserCursor}`
-              : tool === 'select' && hoveringSelection
-                ? `${styles.canvas} ${styles.moveCursor}`
-                : styles.canvas
-        }
+        className={[
+          styles.canvas,
+          tool === 'brush' && styles.brushCursor,
+          tool === 'eraser' && styles.eraserCursor,
+          tool === 'select' && hoveringSelection && styles.moveCursor,
+          crt && crtStyles.image,
+        ]
+          .filter(Boolean)
+          .join(' ')}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endStroke}
         onPointerCancel={endStroke}
       />
-      {showGrid && <div className={styles.gridOverlay} />}
+      {reference && (
+        <img
+          src={reference.url}
+          alt=""
+          draggable={false}
+          className={reference.adjusting ? `${styles.reference} ${styles.referenceAdjusting}` : styles.reference}
+          style={
+            {
+              '--reference-opacity': reference.opacity,
+              '--reference-x': `${reference.x * 100}%`,
+              '--reference-y': `${reference.y * 100}%`,
+              '--reference-scale': reference.scale,
+            } as React.CSSProperties
+          }
+          onPointerDown={handleReferencePointerDown}
+          onPointerMove={handleReferencePointerMove}
+          onPointerUp={() => (referenceDragRef.current = null)}
+          onPointerCancel={() => (referenceDragRef.current = null)}
+        />
+      )}
+      {tool === 'gradient' && (
+        <canvas ref={gradientCanvasRef} width={width} height={height} className={styles.tintCanvas} />
+      )}
+      {hardware && !crt && (
+        <canvas ref={tintRef} width={width} height={height} className={styles.tintCanvas} />
+      )}
+      {showGrid && !crt && <div className={styles.gridOverlay} />}
+      {crt && <div className={crtStyles.overlay} style={{ '--crt-line': `${cellSize}px` } as React.CSSProperties} />}
+      {hardware?.showTiles && !crt && <div className={styles.tileOverlay} style={{ '--tile-size': `${8 * cellSize}px` } as React.CSSProperties} />}
+      {hardware?.showRegions && !crt && (
+        <div className={styles.regionOverlay} style={{ '--region-size': `${hardware.regionSize * cellSize}px` } as React.CSSProperties} />
+      )}
+      {hardware?.rejection && !crt && (
+        <div
+          key={hardware.rejection.id}
+          className={styles.rejectFlash}
+          style={
+            {
+              '--sel-x': `${Math.floor(hardware.rejection.col / hardware.regionSize) * hardware.regionSize * cellSize}px`,
+              '--sel-y': `${Math.floor(hardware.rejection.row / hardware.regionSize) * hardware.regionSize * cellSize}px`,
+              '--sel-w': `${hardware.regionSize * cellSize}px`,
+              '--sel-h': `${hardware.regionSize * cellSize}px`,
+            } as React.CSSProperties
+          }
+        />
+      )}
       {activeSelectionRect && (
         <div
           className={styles.selectionOverlay}

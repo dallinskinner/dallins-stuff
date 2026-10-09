@@ -6,6 +6,7 @@ import { TypographyApp } from './TypographyApp'
 import { PixelArtApp } from './pixel-art/PixelArtApp'
 import { ScreenSavorApp } from './screen-savor/ScreenSavorApp'
 import { ImageToolsApp } from './image-tools/ImageToolsApp'
+import { ColorPaletteApp } from './color-palette/ColorPaletteApp'
 import infoIcon from '../assets/icons/info.png'
 import pencilIcon from '../assets/icons/pencil.png'
 import documentIcon from '../assets/icons/document.png'
@@ -28,9 +29,10 @@ export const apps: AppDefinition[] = [
     id: 'tools',
     label: 'Tools',
     children: [
-      { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 640 },
+      { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 760 },
       { id: 'screen-savor', label: 'Screen Flavor', icon: documentIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
       { id: 'image-tools', label: 'Image Tools', icon: documentIcon, component: ImageToolsApp, windowMaxWidth: 760 },
+      { id: 'color-palette', label: 'Color Palette', icon: documentIcon, component: ColorPaletteApp, windowMaxWidth: 760 },
     ],
   },
   {

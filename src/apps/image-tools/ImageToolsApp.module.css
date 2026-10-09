@@ -22,6 +22,11 @@
   cursor: default;
 }
 
+.toolActive {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .fileNameInput {
   box-sizing: border-box;
   width: 12ch;
@@ -85,10 +90,23 @@
   }
 }
 
+.canvasStack {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
 .canvas {
   display: block;
   max-width: 100%;
   height: auto;
+}
+
+.overlayCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   cursor: crosshair;
 }
 
@@ -107,10 +125,34 @@
   gap: var(--padding);
   width: 160px;
   flex-shrink: 0;
+  max-height: var(--panel-height, 80vh);
   padding: var(--padding);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--content-background);
+}
+
+.paletteList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.paletteCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  padding-bottom: var(--padding);
+  border-bottom: 1px solid var(--border);
+}
+
+.paletteCard:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .swatch {
@@ -120,50 +162,148 @@
   border-radius: calc(var(--radius) / 2);
 }
 
-.sampleReadout {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px var(--padding);
-  margin: 0;
+.statList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--padding);
+  padding: 0.4em 0.6em;
+  border-radius: calc(var(--radius) / 2);
+  background: var(--border);
+  overflow: hidden;
   color: var(--foreground);
   font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
   font-size: 13px;
 }
 
-.sampleReadout dt {
-  opacity: 0.6;
+.statFill {
+  position: absolute;
+  inset: 0;
+  width: var(--fill-percent);
+  background: var(--accent);
+  opacity: 0.55;
 }
 
-.sampleReadout dd {
-  margin: 0;
-  text-align: right;
+.statLabel,
+.statValue {
+  position: relative;
+  opacity: 0.8;
 }
 
-.chromaBarRow {
+.statValue {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.paletteActions {
+  position: relative;
+  display: flex;
+  gap: calc(var(--padding) / 2);
+  padding-bottom: var(--padding);
+  border-bottom: 1px solid var(--border);
+}
+
+.paletteActions > button {
+  flex: 1;
+}
+
+.settingsWrapper {
+  flex: none;
+}
+
+.settingsButton {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 2.2em;
+  height: 100%;
+}
+
+.gearIcon {
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.settingsMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 200px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+  padding: var(--padding);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--content-background);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.settingsSection {
+  display: flex;
+  flex-direction: column;
   gap: calc(var(--padding) / 2);
 }
 
-.chromaBar {
-  flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--border);
-  overflow: hidden;
+.settingsLabel {
+  color: var(--foreground);
+  opacity: 0.6;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.chromaFill {
-  width: var(--chroma-percent);
-  height: 100%;
-  background: var(--accent);
-}
-
-.chromaPercent {
-  flex-shrink: 0;
-  min-width: 3ch;
-  text-align: right;
+.settingsCheckbox {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--padding) / 2);
   color: var(--foreground);
   font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
   font-size: 13px;
+}
+
+.settingsSelect {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 13px;
+}
+
+.removeSwatch {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--content-background);
+  color: var(--foreground);
+  font-size: 11px;
+  line-height: 1;
 }

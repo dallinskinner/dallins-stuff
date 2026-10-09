@@ -1,0 +1,120 @@
+.frame {
+  --thickness: 16px;
+  --tick-color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  --tick-major-color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  display: grid;
+  grid-template-columns: var(--thickness) auto;
+  grid-template-rows: var(--thickness) auto;
+  flex-shrink: 0;
+  font-size: 9px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.corner {
+  background: var(--content-background);
+}
+
+.ruler {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--content-background);
+  user-select: none;
+}
+
+/* Offsets of 1px line the ticks up with the canvas, which sits inside a 1px border. */
+.top {
+  width: var(--display-width);
+  height: var(--thickness);
+  margin-left: 1px;
+  background-image:
+    linear-gradient(to right, var(--tick-major-color) 1px, transparent 1px),
+    linear-gradient(to right, var(--tick-color) 1px, transparent 1px);
+  background-size:
+    calc(var(--cell-size) * var(--label-step)) 100%,
+    var(--cell-size) 30%;
+  background-position:
+    0 0,
+    0 100%;
+  background-repeat: repeat-x, repeat-x;
+}
+
+.left {
+  width: var(--thickness);
+  height: var(--display-height);
+  margin-top: 1px;
+  background-image:
+    linear-gradient(to bottom, var(--tick-major-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--tick-color) 1px, transparent 1px);
+  background-size:
+    100% calc(var(--cell-size) * var(--label-step)),
+    30% var(--cell-size);
+  background-position:
+    0 0,
+    100% 0;
+  background-repeat: repeat-y, repeat-y;
+}
+
+.noMinorTicks.top {
+  background-image: linear-gradient(to right, var(--tick-major-color) 1px, transparent 1px);
+  background-size: calc(var(--cell-size) * var(--label-step)) 100%;
+  background-position: 0 0;
+  background-repeat: repeat-x;
+}
+
+.noMinorTicks.left {
+  background-image: linear-gradient(to bottom, var(--tick-major-color) 1px, transparent 1px);
+  background-size: 100% calc(var(--cell-size) * var(--label-step));
+  background-position: 0 0;
+  background-repeat: repeat-y;
+}
+
+.topLabel {
+  position: absolute;
+  top: 1px;
+  left: calc(var(--at) + 3px);
+}
+
+.leftLabel {
+  position: absolute;
+  top: calc(var(--at) + 2px);
+  left: 1px;
+}
+
+.content {
+  display: flex;
+}
+
+/* Highlights the cell under the pointer. */
+.topMarker,
+.leftMarker {
+  position: absolute;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  border: solid var(--accent);
+  pointer-events: none;
+}
+
+.topMarker {
+  top: 0;
+  bottom: 0;
+  left: var(--at);
+  width: var(--cell-size);
+  min-width: 2px;
+  border-width: 0 1px;
+  box-sizing: border-box;
+}
+
+.leftMarker {
+  left: 0;
+  right: 0;
+  top: var(--at);
+  height: var(--cell-size);
+  min-height: 2px;
+  border-width: 1px 0;
+  box-sizing: border-box;
+}
+
+.topMarker[hidden],
+.leftMarker[hidden] {
+  display: none;
+}
