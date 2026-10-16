@@ -307,7 +307,8 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     onPaintCells(secondary, secondaryColor)
   }
 
-  function getCell(e: React.PointerEvent<HTMLCanvasElement>): { row: number; col: number } | null {
+  /** The cell under the pointer, or null off the art — unless `unbounded`, for gestures (like curve handles) that may reach past the edges. */
+  function getCell(e: React.PointerEvent<HTMLCanvasElement>, unbounded = false): { row: number; col: number } | null {
     const canvas = (ref as React.RefObject<HTMLCanvasElement>).current
     if (!canvas) return null
     const rect = canvas.getBoundingClientRect()
@@ -315,7 +316,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     const scaleY = canvas.height / rect.height
     const col = Math.floor((e.clientX - rect.left) * scaleX)
     const row = Math.floor((e.clientY - rect.top) * scaleY)
-    if (row < 0 || row >= height || col < 0 || col >= width) return null
+    if (!unbounded && (row < 0 || row >= height || col < 0 || col >= width)) return null
     return { row, col }
   }
 
@@ -408,8 +409,9 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     }
     if (!isPaintingRef.current) return
     if (tool === 'curve') {
-      const cell = getCell(e)
       const state = curveRef.current
+      // The line's anchors stay on the art, but its control handles can be dragged past the edges.
+      const cell = getCell(e, state?.phase !== 'line')
       if (!cell || !state) return
       if (state.phase === 'line') {
         state.p3 = cell
@@ -569,24 +571,26 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         onPointerCancel={endStroke}
       />
       {reference && (
-        <img
-          src={reference.url}
-          alt=""
-          draggable={false}
-          className={reference.adjusting ? `${styles.reference} ${styles.referenceAdjusting}` : styles.reference}
-          style={
-            {
-              '--reference-opacity': reference.opacity,
-              '--reference-x': `${reference.x * 100}%`,
-              '--reference-y': `${reference.y * 100}%`,
-              '--reference-scale': reference.scale,
-            } as React.CSSProperties
-          }
-          onPointerDown={handleReferencePointerDown}
-          onPointerMove={handleReferencePointerMove}
-          onPointerUp={() => (referenceDragRef.current = null)}
-          onPointerCancel={() => (referenceDragRef.current = null)}
-        />
+        <div className={styles.clip}>
+          <img
+            src={reference.url}
+            alt=""
+            draggable={false}
+            className={reference.adjusting ? `${styles.reference} ${styles.referenceAdjusting}` : styles.reference}
+            style={
+              {
+                '--reference-opacity': reference.opacity,
+                '--reference-x': `${reference.x * 100}%`,
+                '--reference-y': `${reference.y * 100}%`,
+                '--reference-scale': reference.scale,
+              } as React.CSSProperties
+            }
+            onPointerDown={handleReferencePointerDown}
+            onPointerMove={handleReferencePointerMove}
+            onPointerUp={() => (referenceDragRef.current = null)}
+            onPointerCancel={() => (referenceDragRef.current = null)}
+          />
+        </div>
       )}
       {tool === 'gradient' && (
         <canvas ref={gradientCanvasRef} width={width} height={height} className={styles.tintCanvas} />
@@ -614,17 +618,19 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
         />
       )}
       {activeSelectionRect && (
-        <div
-          className={styles.selectionOverlay}
-          style={
-            {
-              '--sel-x': `${activeSelectionRect.colMin * cellSize}px`,
-              '--sel-y': `${activeSelectionRect.rowMin * cellSize}px`,
-              '--sel-w': `${(activeSelectionRect.colMax - activeSelectionRect.colMin + 1) * cellSize}px`,
-              '--sel-h': `${(activeSelectionRect.rowMax - activeSelectionRect.rowMin + 1) * cellSize}px`,
-            } as React.CSSProperties
-          }
-        />
+        <div className={styles.clip}>
+          <div
+            className={styles.selectionOverlay}
+            style={
+              {
+                '--sel-x': `${activeSelectionRect.colMin * cellSize}px`,
+                '--sel-y': `${activeSelectionRect.rowMin * cellSize}px`,
+                '--sel-w': `${(activeSelectionRect.colMax - activeSelectionRect.colMin + 1) * cellSize}px`,
+                '--sel-h': `${(activeSelectionRect.rowMax - activeSelectionRect.rowMin + 1) * cellSize}px`,
+              } as React.CSSProperties
+            }
+          />
+        </div>
       )}
       {handleLine && (
         <svg className={styles.handleLineSvg} width={width * cellSize} height={height * cellSize}>

@@ -2,7 +2,15 @@
   position: relative;
   display: inline-block;
   flex-shrink: 0;
+}
+
+/* Keeps overlays that can move past the art (the reference image, a dragged selection) cropped to it.
+   The wrapper itself doesn't clip, so a curve's handle line can be drawn beyond the edges. */
+.clip {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .canvas {
@@ -141,6 +149,7 @@
 .handleLineSvg {
   position: absolute;
   inset: 0;
+  overflow: visible;
   pointer-events: none;
 }
 
