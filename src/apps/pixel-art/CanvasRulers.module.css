@@ -11,22 +11,27 @@
   color: color-mix(in srgb, var(--foreground) 70%, transparent);
 }
 
+/* The rulers and corner stick to the scroll viewport's edges, staying above the canvas as it scrolls under them. */
 .corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 2;
   background: var(--content-background);
 }
 
 .ruler {
-  position: relative;
+  position: sticky;
+  z-index: 1;
   overflow: hidden;
   background-color: var(--content-background);
   user-select: none;
 }
 
-/* Offsets of 1px line the ticks up with the canvas, which sits inside a 1px border. */
 .top {
+  top: 0;
   width: var(--display-width);
   height: var(--thickness);
-  margin-left: 1px;
   background-image:
     linear-gradient(to right, var(--tick-major-color) 1px, transparent 1px),
     linear-gradient(to right, var(--tick-color) 1px, transparent 1px);
@@ -40,9 +45,9 @@
 }
 
 .left {
+  left: 0;
   width: var(--thickness);
   height: var(--display-height);
-  margin-top: 1px;
   background-image:
     linear-gradient(to bottom, var(--tick-major-color) 1px, transparent 1px),
     linear-gradient(to bottom, var(--tick-color) 1px, transparent 1px);

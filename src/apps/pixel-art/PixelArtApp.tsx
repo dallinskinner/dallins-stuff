@@ -16,6 +16,8 @@ import { CanvasRulers } from './CanvasRulers'
 import { PixelPreview } from './PixelPreview'
 import { RecolorPanel } from './RecolorPanel'
 import { ConsolePalettePanel } from './ConsolePalettePanel'
+import { Dropdown } from './Dropdown'
+import { HardwarePanel } from './HardwarePanel'
 import type { ActiveSlot } from './ConsolePalettePanel'
 import { MODES } from './modes'
 import { convertGridToMode, isConstrained } from './modes/constraints'
@@ -76,8 +78,7 @@ export function PixelArtApp() {
   const [fileName, setFileName] = useState('pixel-art')
   const [tool, setTool] = useState<Tool>('brush')
   const [showGrid, setShowGrid] = useState(true)
-  const [showRulers, setShowRulers] = useState(true)
-  const [crt, setCrt] = useState(false)
+  const [showRulers, setShowRulers] = useState(false)
   const [previewZoom, setPreviewZoom] = useState<number>(1)
   const [referenceUrl, setReferenceUrl] = useState<string | null>(null)
   const [referenceVisible, setReferenceVisible] = useState(true)
@@ -86,20 +87,12 @@ export function PixelArtApp() {
   const [referenceScale, setReferenceScale] = useState(1)
   const [referenceOffset, setReferenceOffset] = useState({ x: 0, y: 0 })
   const referenceInputRef = useRef<HTMLInputElement>(null)
-  const [showTiles, setShowTiles] = useState(true)
-  const [showRegions, setShowRegions] = useState(true)
+  const [showTiles, setShowTiles] = useState(false)
+  const [showRegions, setShowRegions] = useState(false)
   const [canvasZoom, setCanvasZoom] = useState<number>(FREESTYLE_DEFAULT_ZOOM)
-  const [transformOpen, setTransformOpen] = useState(false)
-  const [projectOpen, setProjectOpen] = useState(false)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [recolorOpen, setRecolorOpen] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const transformRef = useRef<HTMLDivElement>(null)
-  const projectRef = useRef<HTMLDivElement>(null)
   const projectInputRef = useRef<HTMLInputElement>(null)
-  const paletteRef = useRef<HTMLDivElement>(null)
-  const recolorRef = useRef<HTMLDivElement>(null)
   const canvasViewportRef = useRef<HTMLDivElement>(null)
   const canvasZoomRef = useRef(canvasZoom)
   /** The grid point under the cursor when a wheel zoom started, and where on screen it must stay. */
@@ -149,42 +142,6 @@ export function PixelArtApp() {
   useEffect(() => {
     if (previewZoom > previewZoomMax) setPreviewZoom(previewZoomMax)
   }, [previewZoom, previewZoomMax])
-
-  useEffect(() => {
-    if (!transformOpen) return
-    function handlePointerDown(e: PointerEvent) {
-      if (!transformRef.current?.contains(e.target as Node)) setTransformOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [transformOpen])
-
-  useEffect(() => {
-    if (!projectOpen) return
-    function handlePointerDown(e: PointerEvent) {
-      if (!projectRef.current?.contains(e.target as Node)) setProjectOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [projectOpen])
-
-  useEffect(() => {
-    if (!paletteOpen) return
-    function handlePointerDown(e: PointerEvent) {
-      if (!paletteRef.current?.contains(e.target as Node)) setPaletteOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [paletteOpen])
-
-  useEffect(() => {
-    if (!recolorOpen) return
-    function handlePointerDown(e: PointerEvent) {
-      if (!recolorRef.current?.contains(e.target as Node)) setRecolorOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [recolorOpen])
 
   // Ctrl+wheel zooms the editing canvas toward the cursor; a plain wheel scrolls the viewport natively. React makes
   // onWheel passive, so preventDefault (needed to stop the browser's own page zoom) requires a native listener.
@@ -268,6 +225,8 @@ export function PixelArtApp() {
     setActive({ sp: 0, slot: 1 })
     setSecondarySlot(0)
     setCanvasZoom(converted.size.defaultZoom)
+    setShowTiles(false)
+    setShowRegions(false)
   }
 
   function handleEditEntry(slot: ActiveSlot, hex: string): boolean {
@@ -284,12 +243,10 @@ export function PixelArtApp() {
 
   function handleFlipHorizontal() {
     loadGrid(flipHorizontal(grid))
-    setTransformOpen(false)
   }
 
   function handleFlipVertical() {
     loadGrid(flipVertical(grid))
-    setTransformOpen(false)
   }
 
   function handleSave() {
@@ -307,7 +264,6 @@ export function PixelArtApp() {
   }
 
   function handleProjectSave() {
-    setProjectOpen(false)
     const json = serializeProject({ mode, grid, palette: modePalette, owners, zoom: canvasZoom })
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
     const link = document.createElement('a')
@@ -357,6 +313,64 @@ export function PixelArtApp() {
 
   return (
     <div className={styles.app}>
+      <div className={styles.menuBar}>
+        <div className={styles.historyButtons}>
+          <button type="button" onClick={undo} disabled={!canUndo} aria-label="Undo">
+            <span className={styles.historyIcon} style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
+          </button>
+          <button type="button" onClick={redo} disabled={!canRedo} aria-label="Redo">
+            <span className={styles.historyIcon} style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
+          </button>
+          <button type="button" onClick={clear} aria-label="Clear">
+            <span className={styles.historyIcon} style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
+          </button>
+        </div>
+        <span className={styles.menuSeparator} />
+        <Dropdown label="File">
+          <button type="button" onClick={() => fileInputRef.current?.click()}>
+            Load PNG…
+          </button>
+          <button type="button" onClick={handleSave}>
+            Save PNG
+          </button>
+          <button type="button" onClick={() => projectInputRef.current?.click()}>
+            Open project…
+          </button>
+          <button type="button" onClick={handleProjectSave}>
+            Save project
+          </button>
+        </Dropdown>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png"
+          onChange={handleLoad}
+          className={styles.hiddenFileInput}
+        />
+        <input
+          ref={projectInputRef}
+          type="file"
+          accept=".json,application/json"
+          onChange={handleProjectLoad}
+          className={styles.hiddenFileInput}
+        />
+        <Dropdown label="Image">
+          <button type="button" onClick={handleFlipHorizontal}>
+            Flip horizontal
+          </button>
+          <button type="button" onClick={handleFlipVertical}>
+            Flip vertical
+          </button>
+        </Dropdown>
+        <input
+          type="text"
+          value={fileName}
+          onChange={(e) => setFileName(e.target.value)}
+          placeholder="pixel-art"
+          aria-label="File name"
+          className={styles.fileNameInput}
+        />
+      </div>
       <div className={styles.workspace}>
         <div className={styles.toolPanel}>
           <div className={styles.toolButtons}>
@@ -464,6 +478,90 @@ export function PixelArtApp() {
               </select>
             </label>
           )}
+        </div>
+        <div className={styles.canvasArea}>
+          <div className={styles.canvasViewport} ref={canvasViewportRef}>
+            <CanvasRulers width={width} height={height} cellSize={cellSize} enabled={showRulers}>
+              <PixelCanvas
+                ref={canvasRef}
+                grid={grid}
+                width={width}
+                height={height}
+                cellSize={cellSize}
+                tool={tool}
+                color={paintColor}
+                secondaryColor={secondaryColor}
+                ditherPattern={ditherPattern}
+                ditherSize={ditherSize}
+                showGrid={showGrid}
+                backdrop={backdrop}
+                reference={
+                  referenceUrl && referenceVisible
+                    ? {
+                        url: referenceUrl,
+                        opacity: referenceOpacity,
+                        x: referenceOffset.x,
+                        y: referenceOffset.y,
+                        scale: referenceScale,
+                        adjusting: referenceAdjusting,
+                        onMove: (x, y) => setReferenceOffset({ x, y }),
+                      }
+                    : undefined
+                }
+                hardware={
+                  constrained
+                    ? { regionSize: mode.regionSize, owners, showTiles, showRegions, rejection }
+                    : undefined
+                }
+                onBeginStroke={beginStroke}
+                onPaintCell={paintCell}
+                onPaintCells={paintCells}
+              />
+            </CanvasRulers>
+          </div>
+          {constrained && (
+            <HardwarePanel
+              title={mode.label}
+              showTiles={showTiles}
+              onShowTilesChange={setShowTiles}
+              showRegions={showRegions}
+              onShowRegionsChange={setShowRegions}
+              strict={strict}
+              onStrictChange={setStrict}
+              uniqueTiles={uniqueTiles}
+              maxUniqueTiles={mode.maxUniqueTiles}
+            />
+          )}
+        </div>
+        <div className={styles.colorPanel}>
+          <div className={styles.colorArea}>
+            {constrained && (
+              <ConsolePalettePanel
+                mode={mode}
+                palette={modePalette}
+                active={active}
+                onSelect={setActive}
+                secondarySlot={secondarySlot}
+                onSelectSecondary={setSecondarySlot}
+                onEditEntry={handleEditEntry}
+              />
+            )}
+            {!constrained && palette.length > 0 && (
+              <div className={styles.paletteGrid} aria-label="Colors used in this artwork">
+                {palette.map((hex) => (
+                  <button
+                    key={hex}
+                    type="button"
+                    className={styles.paletteSwatch}
+                    style={{ backgroundColor: hex }}
+                    aria-label={hex}
+                    aria-pressed={hex.toLowerCase() === colorHex.toLowerCase()}
+                    onClick={() => setColorHex(hex)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           <div className={styles.colorRow}>
             <label
               className={styles.activeColor}
@@ -495,199 +593,27 @@ export function PixelArtApp() {
                 )}
               </label>
             )}
-            {!constrained && (
-            <div className={styles.paletteDropdown} ref={paletteRef}>
-              <button
-                type="button"
-                className={styles.paletteButton}
-                aria-expanded={paletteOpen}
-                aria-label="Colors used in this artwork"
-                onClick={() => setPaletteOpen((open) => !open)}
-              >
-                <span className={styles.paletteIcon} />
-              </button>
-              {paletteOpen && (
-                <div className={styles.palettePopover}>
-                  {palette.length === 0 ? (
-                    <p className={styles.paletteEmpty}>No colors yet</p>
-                  ) : (
-                    palette.map((hex) => (
-                      <button
-                        key={hex}
-                        type="button"
-                        className={styles.paletteSwatch}
-                        style={{ backgroundColor: hex }}
-                        aria-label={hex}
-                        aria-pressed={hex.toLowerCase() === colorHex.toLowerCase()}
-                        onClick={() => {
-                          setColorHex(hex)
-                          setPaletteOpen(false)
-                        }}
-                      />
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-            )}
           </div>
-        </div>
-        <div className={styles.canvasViewport} ref={canvasViewportRef}>
-          <CanvasRulers width={width} height={height} cellSize={cellSize} enabled={showRulers}>
-            <PixelCanvas
-              ref={canvasRef}
-              grid={grid}
-              width={width}
-              height={height}
-              cellSize={cellSize}
-              tool={tool}
-              color={paintColor}
-              secondaryColor={secondaryColor}
-              ditherPattern={ditherPattern}
-            ditherSize={ditherSize}
-              showGrid={showGrid}
-              crt={crt}
-              backdrop={backdrop}
-              reference={
-                referenceUrl && referenceVisible
-                  ? {
-                      url: referenceUrl,
-                      opacity: referenceOpacity,
-                      x: referenceOffset.x,
-                      y: referenceOffset.y,
-                      scale: referenceScale,
-                      adjusting: referenceAdjusting,
-                      onMove: (x, y) => setReferenceOffset({ x, y }),
-                    }
-                  : undefined
-              }
-              hardware={
-                constrained
-                  ? { regionSize: mode.regionSize, owners, showTiles, showRegions, rejection }
-                  : undefined
-              }
-              onBeginStroke={beginStroke}
-              onPaintCell={paintCell}
-              onPaintCells={paintCells}
-            />
-          </CanvasRulers>
-        </div>
-        <div className={styles.actions}>
-          <div className={styles.buttonRow}>
-            <button type="button" onClick={undo} disabled={!canUndo} aria-label="Undo">
-              <span className={styles.historyIcon} style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
-            </button>
-            <button type="button" onClick={redo} disabled={!canRedo} aria-label="Redo">
-              <span className={styles.historyIcon} style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
-            </button>
-            <button type="button" onClick={clear} aria-label="Clear">
-              <span className={styles.historyIcon} style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
-            </button>
-          </div>
-          <input
-            type="text"
-            value={fileName}
-            onChange={(e) => setFileName(e.target.value)}
-            placeholder="pixel-art"
-            className={styles.fileNameInput}
-          />
-          <div className={styles.buttonRow}>
-            <button type="button" onClick={() => fileInputRef.current?.click()}>
-              Load
-            </button>
-            <button type="button" onClick={handleSave}>
-              Save
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png"
-            onChange={handleLoad}
-            className={styles.hiddenFileInput}
-          />
-          <div className={styles.dropdown} ref={projectRef}>
-            <button type="button" aria-expanded={projectOpen} onClick={() => setProjectOpen((open) => !open)}>
-              Project ▾
-            </button>
-            {projectOpen && (
-              <div className={styles.dropdownMenu}>
-                <button type="button" onClick={handleProjectSave}>
-                  Save project
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProjectOpen(false)
-                    projectInputRef.current?.click()
-                  }}
-                >
-                  Open project
-                </button>
-              </div>
-            )}
-          </div>
-          <input
-            ref={projectInputRef}
-            type="file"
-            accept=".json,application/json"
-            onChange={handleProjectLoad}
-            className={styles.hiddenFileInput}
-          />
-          <div className={styles.dropdown} ref={transformRef}>
-            <button
-              type="button"
-              aria-expanded={transformOpen}
-              onClick={() => setTransformOpen((open) => !open)}
-            >
-              Transform ▾
-            </button>
-            {transformOpen && (
-              <div className={styles.dropdownMenu}>
-                <button type="button" onClick={handleFlipHorizontal}>
-                  Flip H
-                </button>
-                <button type="button" onClick={handleFlipVertical}>
-                  Flip V
-                </button>
-              </div>
-            )}
-          </div>
-          {constrained ? (
-            <ConsolePalettePanel
-              mode={mode}
-              palette={modePalette}
-              active={active}
-              onSelect={setActive}
-              secondarySlot={secondarySlot}
-              onSelectSecondary={setSecondarySlot}
-              onEditEntry={handleEditEntry}
-            />
-          ) : (
-            <div className={styles.dropdown} ref={recolorRef}>
-              <button type="button" aria-expanded={recolorOpen} onClick={() => setRecolorOpen((open) => !open)}>
-                Recolor ▾
-              </button>
-              {recolorOpen && (
-                <RecolorPanel grid={grid} palette={palette} onBeginStroke={beginStroke} onPaintCells={paintCells} />
-              )}
-            </div>
+          {!constrained && (
+            <Dropdown label="Recolor" variant="panel" align="right" fullWidth>
+              <RecolorPanel grid={grid} palette={palette} onBeginStroke={beginStroke} onPaintCells={paintCells} />
+            </Dropdown>
           )}
-        </div>
-        <div className={styles.previewCorner}>
-          <label className={styles.zoomSlider}>
-            {previewShrunk ? 'Preview (fit)' : `Preview ${previewZoom}x`}
-            <input
-              type="range"
-              disabled={previewShrunk}
-              min={PREVIEW_ZOOM_MIN}
-              max={previewZoomMax}
-              step={1}
-              value={previewZoom}
-              onChange={(e) => setPreviewZoom(Number(e.target.value))}
-            />
-          </label>
-          <PixelPreview grid={grid} width={width} height={height} zoom={previewShrunk ? previewFitScale : previewZoom} maxSize={MAX_PREVIEW} backdrop={backdrop} crt={crt} />
+          <div className={styles.previewCorner}>
+            <label className={styles.zoomSlider}>
+              {previewShrunk ? 'Preview (fit)' : `Preview ${previewZoom}x`}
+              <input
+                type="range"
+                disabled={previewShrunk}
+                min={PREVIEW_ZOOM_MIN}
+                max={previewZoomMax}
+                step={1}
+                value={previewZoom}
+                onChange={(e) => setPreviewZoom(Number(e.target.value))}
+              />
+            </label>
+            <PixelPreview grid={grid} width={width} height={height} zoom={previewShrunk ? previewFitScale : previewZoom} maxSize={MAX_PREVIEW} backdrop={backdrop} />
+          </div>
         </div>
       </div>
       <div className={styles.bottomBar}>
@@ -713,29 +639,6 @@ export function PixelArtApp() {
           <input type="checkbox" checked={showRulers} onChange={(e) => setShowRulers(e.target.checked)} />
           Rulers
         </label>
-        <label title="Presentation mode: shows the art with a CRT look. Doesn't change the artwork.">
-          <input type="checkbox" checked={crt} onChange={(e) => setCrt(e.target.checked)} />
-          CRT
-        </label>
-        {constrained && (
-          <>
-            <label>
-              <input type="checkbox" checked={showTiles} onChange={(e) => setShowTiles(e.target.checked)} />
-              Tiles
-            </label>
-            <label>
-              <input type="checkbox" checked={showRegions} onChange={(e) => setShowRegions(e.target.checked)} />
-              Palette areas
-            </label>
-            <label title="On: paints that would exceed the tile budget are refused. Off: you can go over it (the counter turns red).">
-              <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} />
-              Strict
-            </label>
-            <span className={uniqueTiles !== null && uniqueTiles > mode.maxUniqueTiles ? styles.overBudget : undefined}>
-              Tiles {uniqueTiles} / {mode.maxUniqueTiles}
-            </span>
-          </>
-        )}
         <div className={styles.referenceControl}>
           <button type="button" onClick={() => referenceInputRef.current?.click()}>
             {referenceUrl ? 'Change reference' : 'Reference…'}

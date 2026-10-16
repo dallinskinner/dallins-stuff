@@ -11,7 +11,6 @@ import {
   rectangleCells,
 } from './pixelGrid'
 import styles from './PixelCanvas.module.css'
-import crtStyles from './crt.module.css'
 
 type Cell = { row: number; col: number }
 type Rect = { rowMin: number; rowMax: number; colMin: number; colMax: number }
@@ -76,8 +75,6 @@ interface PixelCanvasProps {
   ditherPattern: DitherPattern
   ditherSize: number
   showGrid: boolean
-  /** Presentation mode: draws the art with a CRT look and hides the editing overlays. Display-only. */
-  crt?: boolean
   /** Color shown through transparent pixels (the NES backdrop); omit to keep them transparent. */
   backdrop?: RGBA
   /** A tracing image drawn over the canvas (not part of the artwork or the saved PNG); omit for none. */
@@ -160,7 +157,7 @@ const SHIFT_END_CELL: Record<
 }
 
 export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(function PixelCanvas(
-  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, crt, backdrop, reference, hardware, onBeginStroke, onPaintCell, onPaintCells },
+  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, backdrop, reference, hardware, onBeginStroke, onPaintCell, onPaintCells },
   ref,
 ) {
   const isPaintingRef = useRef(false)
@@ -563,7 +560,6 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
           tool === 'brush' && styles.brushCursor,
           tool === 'eraser' && styles.eraserCursor,
           tool === 'select' && hoveringSelection && styles.moveCursor,
-          crt && crtStyles.image,
         ]
           .filter(Boolean)
           .join(' ')}
@@ -595,16 +591,15 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       {tool === 'gradient' && (
         <canvas ref={gradientCanvasRef} width={width} height={height} className={styles.tintCanvas} />
       )}
-      {hardware && !crt && (
+      {hardware && (
         <canvas ref={tintRef} width={width} height={height} className={styles.tintCanvas} />
       )}
-      {showGrid && !crt && <div className={styles.gridOverlay} />}
-      {crt && <div className={crtStyles.overlay} style={{ '--crt-line': `${cellSize}px` } as React.CSSProperties} />}
-      {hardware?.showTiles && !crt && <div className={styles.tileOverlay} style={{ '--tile-size': `${8 * cellSize}px` } as React.CSSProperties} />}
-      {hardware?.showRegions && !crt && (
+      {showGrid && <div className={styles.gridOverlay} />}
+      {hardware?.showTiles && <div className={styles.tileOverlay} style={{ '--tile-size': `${8 * cellSize}px` } as React.CSSProperties} />}
+      {hardware?.showRegions && (
         <div className={styles.regionOverlay} style={{ '--region-size': `${hardware.regionSize * cellSize}px` } as React.CSSProperties} />
       )}
-      {hardware?.rejection && !crt && (
+      {hardware?.rejection && (
         <div
           key={hardware.rejection.id}
           className={styles.rejectFlash}

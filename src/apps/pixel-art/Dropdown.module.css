@@ -1,0 +1,39 @@
+.dropdown {
+  position: relative;
+}
+
+.dropdown[data-full-width='true'],
+.dropdown[data-full-width='true'] > .trigger {
+  width: 100%;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 2;
+  min-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+}
+
+.popover[data-align='right'] {
+  left: auto;
+  right: 0;
+}
+
+.popover[data-variant='menu'] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.popover[data-variant='menu'] button {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+}

@@ -1,0 +1,58 @@
+.panel {
+  position: absolute;
+  right: var(--padding);
+  bottom: var(--padding);
+  z-index: 3;
+  /* Fixed so collapsing or going over budget doesn't change the width. */
+  box-sizing: border-box;
+  width: 180px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.chevron {
+  font-size: 12px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.body label {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.tileCount[data-over='true'] {
+  color: #e05252;
+}

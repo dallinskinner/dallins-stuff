@@ -26,7 +26,7 @@ function labelPositions(count: number, step: number): number[] {
   return positions
 }
 
-/** Pixel rulers along the top and left of the canvas, numbered in grid cells. They scroll and zoom with it. */
+/** Pixel rulers along the top and left of the canvas, numbered in grid cells. They zoom with it and stick to the viewport edges while it scrolls. */
 export function CanvasRulers({ width, height, cellSize, enabled, children }: CanvasRulersProps) {
   const topMarkerRef = useRef<HTMLDivElement>(null)
   const leftMarkerRef = useRef<HTMLDivElement>(null)
@@ -39,8 +39,8 @@ export function CanvasRulers({ width, height, cellSize, enabled, children }: Can
   // Moves the markers by writing straight to the DOM: this fires on every pointer move, which shouldn't re-render the app.
   function trackPointer(e: React.PointerEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect()
-    const col = Math.floor((e.clientX - rect.left - 1) / cellSize)
-    const row = Math.floor((e.clientY - rect.top - 1) / cellSize)
+    const col = Math.floor((e.clientX - rect.left) / cellSize)
+    const row = Math.floor((e.clientY - rect.top) / cellSize)
     const top = topMarkerRef.current
     const left = leftMarkerRef.current
     if (top) {
