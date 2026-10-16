@@ -1,5 +1,6 @@
 .window {
   position: fixed;
+  z-index: var(--z);
   top: 50%;
   left: 50%;
   --x: 0px;
@@ -44,8 +45,15 @@
   font-variation-settings: 'MONO' var(--window-title-mono), 'DRKM' var(--font-drkm);
 }
 
+.window:not(.focused) .title {
+  opacity: 0.6;
+}
+
 .close {
   display: block;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
   width: 16px;
   height: 16px;
   background-color: var(--foreground);

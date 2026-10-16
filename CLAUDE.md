@@ -22,17 +22,17 @@ This is a personal site built as a desktop-OS metaphor: a persistent "desktop" s
 Routing (`src/App.tsx`) nests subapp routes inside the shell route so the shell never unmounts:
 
 ```
-/           -> Desktop (shell: renders icons + <Outlet/>)
-  apps/*    -> AppWindow (resolves the full splat path down the app tree and renders the match)
+/           -> Desktop (shell: renders icons + every open window)
+  apps/*    -> null (exists only so the URLs match; Desktop reads the path itself)
 ```
 
-- `src/desktop/Desktop.tsx` — the persistent shell. Renders one `DesktopIcon` per entry in the app registry, plus an `<Outlet/>` where the active subapp renders.
+- `src/desktop/Desktop.tsx` — the persistent shell and window manager. Renders one `DesktopIcon` per registry entry, plus one `AppWindow` per open window. The URL (`/apps/<path>`) names the **focused** window; navigating to a path opens that window (if not already open) and raises it. Open windows stay mounted, keeping their state, position and size in memory (not persisted across reloads). Each app path has at most one window. Windows render in open order (so React never remounts them) and stack via a separate z-order (`--z`). Focusing a window by clicking it uses `navigate(..., { replace: true })`; closing one moves focus to the next window down, or to `/`.
+- `src/desktop/WindowManager.tsx` — contexts: `useWindowManager()` (`openPaths`, `focusedPath`, `focus`, `close`) and `useWindowFocus()` (`{ path, isFocused }` for the current window). Subapps with global listeners (e.g. Image Tools' `paste` handler) should gate them on `isFocused`, since several apps may be mounted at once.
 - `src/apps/registry.ts` — single source of truth for subapps, as a **tree**: each `AppDefinition` is either a leaf (`{ id, label, component }`) or a directory (`{ id, label, children }`, itself a list of `AppDefinition`). `resolvePath()` walks a `/`-separated id path (from the route splat) down that tree. Adding a leaf subapp means creating its component and adding one entry (at the top level or inside a directory's `children`) — nothing else needs to know about it.
-- `src/apps/AppWindow.tsx` — reads the route splat, resolves it via `resolvePath()`, and renders either the matched leaf's component or, for a directory, `DirectoryApp` (or a not-found message if nothing matches).
-- `src/apps/DirectoryApp.tsx` — renders a grid of `DesktopIcon`s for a directory's children, linking each to `<basePath>/<childId>`. A directory is just a nested desktop rendered inside a window.
-- Individual subapps (`AboutApp.tsx`, `ProjectsApp.tsx`, `ContactApp.tsx`) are plain components with no knowledge of routing or the shell.
-
-There is no window manager yet (no dragging, stacking, focus/z-index, or multiple simultaneously-open windows) — currently only one subapp renders at a time, driven entirely by the route.
+- `src/apps/AppWindow.tsx` — takes a resolved `path` prop, resolves it via `resolvePath()`, and renders the matched leaf's component or, for a directory, `DirectoryApp`, inside a `Window` wired to the manager's focus/close.
+- `src/apps/Window.tsx` — window chrome: draggable title bar, resize handle, close button, focus on pointerdown. Position and size are local state.
+- `src/apps/DirectoryApp.tsx` — renders a grid of `DesktopIcon`s for a directory's children, linking each to `<basePath>/<childId>`. A directory is just a nested desktop rendered inside a window; opening a child opens a separate window, leaving the directory open.
+- Individual subapps (`AboutApp.tsx`, `ProjectsApp.tsx`, `ContactApp.tsx`) are plain components with no knowledge of routing or the shell (beyond optionally `useWindowFocus()`).
 
 ### Styling
 

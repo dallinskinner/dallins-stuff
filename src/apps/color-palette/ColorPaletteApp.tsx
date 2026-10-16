@@ -40,8 +40,9 @@ function wholeShares(percents: number[]): number[] {
   return shares
 }
 
-function cssColor({ l, c, h }: PaletteColor): string {
-  return `oklch(${l} ${c} ${h})`
+/** With `valueOnly`, chroma is dropped so only perceptual lightness remains. */
+function cssColor({ l, c, h }: PaletteColor, valueOnly = false): string {
+  return `oklch(${l} ${valueOnly ? 0 : c} ${h})`
 }
 
 let nextId = 1
@@ -58,6 +59,8 @@ function makeColor(): PaletteColor {
 export function ColorPaletteApp() {
   const [colors, setColors] = useState<PaletteColor[]>(() => [makeColor()])
 
+  const [valueOnly, setValueOnly] = useState(false)
+
   const total = colors.reduce((sum, color) => sum + color.percent, 0)
   const shares = wholeShares(colors.map((color) => color.percent))
 
@@ -73,8 +76,10 @@ export function ColorPaletteApp() {
         <button onClick={addColor} disabled={colors.length >= MAX_COLORS}>
           Add color
         </button>
-        <span className={styles.total}>Total: {Math.round(total)}%</span>
-      </div>
+        <label className={styles.toggle}>
+          <input type="checkbox" checked={valueOnly} onChange={(e) => setValueOnly(e.target.checked)} />
+          Value
+        </label>      </div>
 
       <div className={styles.workspace}>
         <div className={styles.canvas}>
@@ -83,7 +88,7 @@ export function ColorPaletteApp() {
             <div
               key={color.id}
               className={styles.swatch}
-              style={{ '--color': cssColor(color), '--share': total > 0 ? color.percent : 0 } as React.CSSProperties}
+              style={{ '--color': cssColor(color, valueOnly), '--share': total > 0 ? color.percent : 0 } as React.CSSProperties}
               title={oklchToHex(color.l, color.c, color.h)}
             />
           ))}

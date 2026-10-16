@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { useWindowManager } from './WindowManager'
 import { useHoverColor } from '../theme/useHoverColor'
 import { hoverColors } from '../theme/hoverColors'
 import styles from './DesktopIcon.module.css'
@@ -15,8 +16,11 @@ interface DesktopIconProps {
 export function DesktopIcon({ to, label, icon }: DesktopIconProps) {
   const { onPointerEnter } = useHoverColor()
   const [isHovered, setIsHovered] = useState(false)
-  const { pathname } = useLocation()
-  const isOpen = pathname === to || pathname.startsWith(`${to}/`)
+  const { openPaths } = useWindowManager()
+  const isOpen = openPaths.some((path) => {
+    const windowTo = `/apps/${path}`
+    return windowTo === to || windowTo.startsWith(`${to}/`)
+  })
   const linkRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {

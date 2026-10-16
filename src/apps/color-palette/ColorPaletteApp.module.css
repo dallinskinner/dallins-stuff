@@ -16,6 +16,13 @@
   gap: var(--padding);
 }
 
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
 .actions button:disabled,
 .remove:disabled {
   opacity: 0.5;

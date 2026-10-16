@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useHoverColor } from '../theme/useHoverColor'
 import styles from './Window.module.css'
 import closeIcon from '../assets/icons/close.png'
@@ -7,6 +6,12 @@ import closeIcon from '../assets/icons/close.png'
 interface WindowProps {
   title: string
   maxWidth?: number | string
+  zIndex: number
+  isFocused: boolean
+  /** Starting offset (px, both axes) from center, so new windows cascade rather than stack exactly. */
+  initialOffset?: number
+  onFocus: () => void
+  onClose: () => void
   children: React.ReactNode
 }
 
@@ -14,11 +19,11 @@ const MIN_WIDTH = 400
 const MIN_HEIGHT = 200
 const VIEWPORT_MARGIN = 40
 
-export function Window({ title, maxWidth, children }: WindowProps) {
+export function Window({ title, maxWidth, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
   const windowRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0, posX: 0, posY: 0 })
-  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const [pos, setPos] = useState({ x: initialOffset, y: initialOffset })
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
@@ -93,9 +98,13 @@ export function Window({ title, maxWidth, children }: WindowProps) {
   return (
     <div
       ref={windowRef}
-      className={isDragging || isResizing ? `${styles.window} ${styles.dragging}` : styles.window}
+      className={[styles.window, isFocused && styles.focused, (isDragging || isResizing) && styles.dragging]
+        .filter(Boolean)
+        .join(' ')}
+      onPointerDownCapture={onFocus}
       style={
         {
+          '--z': zIndex,
           '--x': `${pos.x}px`,
           '--y': `${pos.y}px`,
           ...(maxWidth ? { '--window-max-width': typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth } : {}),
@@ -111,8 +120,9 @@ export function Window({ title, maxWidth, children }: WindowProps) {
         onPointerCancel={handleDragEnd}
       >
         <span className={styles.title}>{title}</span>
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={onClose}
           className={styles.close}
           style={{ '--icon': `url(${closeIcon})` } as React.CSSProperties}
           onPointerDown={(e) => e.stopPropagation()}

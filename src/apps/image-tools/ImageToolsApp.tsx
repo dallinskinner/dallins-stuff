@@ -13,6 +13,7 @@ import {
   type ThemeColors,
 } from './annotationRendering'
 import gearIcon from '../../assets/icons/gear.png'
+import { useWindowFocus } from '../../desktop/WindowManager'
 import { rgbToHex, rgbToOklch } from './colorConversion'
 import { toLuminanceGrayscale } from './imageProcessing'
 import { extractPalette } from './paletteExtraction'
@@ -89,6 +90,7 @@ function getThemeColors(el: Element): ThemeColors {
 }
 
 export function ImageToolsApp() {
+  const { isFocused: isWindowFocused } = useWindowFocus()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -166,8 +168,11 @@ export function ImageToolsApp() {
   }
 
   // Pasted images (e.g. a copied screenshot) arrive as clipboard data rather than a file input
-  // change, so listen globally rather than requiring a specific element to be focused.
+  // change, so listen globally rather than requiring a specific element to be focused — but only
+  // while this window is focused, so pastes meant for another window don't land here.
   useEffect(() => {
+    if (!isWindowFocused) return
+
     function handlePaste(e: ClipboardEvent) {
       const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith('image/'))
       const file = item?.getAsFile()
@@ -179,7 +184,7 @@ export function ImageToolsApp() {
 
     window.addEventListener('paste', handlePaste)
     return () => window.removeEventListener('paste', handlePaste)
-  }, [loadImageFile])
+  }, [loadImageFile, isWindowFocused])
 
   // Redraws the overlay from scratch whenever the placed annotations, or an in-progress drag,
   // change — the overlay canvas itself holds no state, it's purely a projection of `palette`.

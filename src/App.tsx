@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
 import { Desktop } from './desktop/Desktop'
-import { AppWindow } from './apps/AppWindow'
 import { Theme } from './theme/Theme'
 import { Typography } from './theme/Typography'
 import { DesktopLayout } from './theme/DesktopLayout'
@@ -17,7 +16,8 @@ function App() {
       <PixelArtTheme />
       <Routes>
         <Route path="/" element={<Desktop />}>
-          <Route path="apps/*" element={<AppWindow />} />
+          {/* Desktop reads the URL and renders every open window itself; this route just makes the paths match. */}
+          <Route path="apps/*" element={null} />
         </Route>
       </Routes>
     </>
