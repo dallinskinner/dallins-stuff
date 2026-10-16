@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAppMessage } from '../../desktop/WindowManager'
 import { oklabToRgb, rgbToHex, rgbToOklch } from '../image-tools/colorConversion'
 import styles from './ColorPaletteApp.module.css'
 
@@ -60,6 +61,19 @@ export function ColorPaletteApp() {
   const [colors, setColors] = useState<PaletteColor[]>(() => [makeColor()])
 
   const [valueOnly, setValueOnly] = useState(false)
+
+  // A palette sent from another app replaces the current one, keeping its most-used colors and their proportions.
+  useAppMessage('palette', ({ colors: incoming }) => {
+    const kept = incoming.slice(0, MAX_COLORS)
+    const totalWeight = kept.reduce((sum, { weight }) => sum + weight, 0)
+    setColors(
+      kept.map(({ hex, weight }) => ({
+        id: nextId++,
+        ...hexToOklch(hex),
+        percent: totalWeight > 0 ? (weight / totalWeight) * 100 : 100 / kept.length,
+      })),
+    )
+  })
 
   const total = colors.reduce((sum, color) => sum + color.percent, 0)
   const shares = wholeShares(colors.map((color) => color.percent))

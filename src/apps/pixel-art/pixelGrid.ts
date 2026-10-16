@@ -233,16 +233,22 @@ export function rgbaToHex({ r, g, b }: RGBA): string {
 }
 
 /** Distinct non-transparent colors currently painted on the grid, most-used first. */
-export function usedColors(grid: PixelGrid): string[] {
+/** Pixel count per color, most-used first. Transparent pixels are skipped, or counted as
+ *  `transparentAs` when given (e.g. the NES backdrop showing through). */
+export function colorCounts(grid: PixelGrid, transparentAs?: string): { hex: string; count: number }[] {
   const counts = new Map<string, number>()
   for (const row of grid) {
     for (const cell of row) {
-      if (cell.a === 0) continue
-      const hex = rgbaToHex(cell)
+      const hex = cell.a === 0 ? transparentAs : rgbaToHex(cell)
+      if (hex === undefined) continue
       counts.set(hex, (counts.get(hex) ?? 0) + 1)
     }
   }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([hex]) => hex)
+  return [...counts.entries()].map(([hex, count]) => ({ hex, count })).sort((a, b) => b.count - a.count)
+}
+
+export function usedColors(grid: PixelGrid): string[] {
+  return colorCounts(grid).map(({ hex }) => hex)
 }
 
 /** Bresenham line between two cells, inclusive of both ends — keeps fast drags gap-free. */

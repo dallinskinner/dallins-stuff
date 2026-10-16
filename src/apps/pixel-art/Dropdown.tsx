@@ -8,10 +8,11 @@ interface DropdownProps {
   variant?: 'menu' | 'panel'
   align?: 'left' | 'right'
   fullWidth?: boolean
+  disabled?: boolean
 }
 
 /** A button that toggles a popover below it, closing on any pointerdown outside. */
-export function Dropdown({ label, children, variant = 'menu', align = 'left', fullWidth = false }: DropdownProps) {
+export function Dropdown({ label, children, variant = 'menu', align = 'left', fullWidth = false, disabled = false }: DropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -30,10 +31,10 @@ export function Dropdown({ label, children, variant = 'menu', align = 'left', fu
 
   return (
     <div className={styles.dropdown} data-full-width={fullWidth} ref={ref}>
-      <button type="button" className={styles.trigger} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button type="button" className={styles.trigger} aria-expanded={open} disabled={disabled} onClick={() => setOpen((o) => !o)}>
         {label} ▾
       </button>
-      {open && (
+      {open && !disabled && (
         <div className={styles.popover} data-variant={variant} data-align={align} onClick={handleMenuClick}>
           {children}
         </div>

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import type { AppMessageType } from './messages'
 import { AboutApp } from './AboutApp'
 import { ProjectsApp } from './ProjectsApp'
 import { ContactApp } from './ContactApp'
@@ -19,6 +20,8 @@ export interface AppDefinition {
   children?: AppDefinition[]
   /** Overrides Window's default 600px cap, for apps too wide to fit it. A number is in px; a string is used as-is (e.g. a viewport-relative unit for apps that should grow freely). */
   windowMaxWidth?: number | string
+  /** Message types this app can receive from other apps (see `messages.ts`); senders offer it as a target for these. */
+  accepts?: AppMessageType[]
 }
 
 export const apps: AppDefinition[] = [
@@ -32,7 +35,7 @@ export const apps: AppDefinition[] = [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 760 },
       { id: 'screen-savor', label: 'Screen Flavor', icon: documentIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
       { id: 'image-tools', label: 'Image Tools', icon: documentIcon, component: ImageToolsApp, windowMaxWidth: 760 },
-      { id: 'color-palette', label: 'Color Palette', icon: documentIcon, component: ColorPaletteApp, windowMaxWidth: 760 },
+      { id: 'color-palette', label: 'Color Palette', icon: documentIcon, component: ColorPaletteApp, windowMaxWidth: 760, accepts: ['palette'] },
     ],
   },
   {
@@ -60,4 +63,18 @@ export function resolvePath(path: string): ResolvedApp | undefined {
   }
 
   return node ? { node, path: segments.join('/') } : undefined
+}
+
+/** Every leaf app that accepts `type`, with its full path. */
+export function appsAccepting(type: AppMessageType): { path: string; label: string }[] {
+  const found: { path: string; label: string }[] = []
+  function walk(nodes: AppDefinition[], prefix: string) {
+    for (const node of nodes) {
+      const path = prefix ? `${prefix}/${node.id}` : node.id
+      if (node.children) walk(node.children, path)
+      else if (node.accepts?.includes(type)) found.push({ path, label: node.label })
+    }
+  }
+  walk(apps, '')
+  return found
 }

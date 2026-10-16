@@ -4,6 +4,7 @@ import {
   GRID_WIDTH,
   TRANSPARENT,
   flipHorizontal,
+  colorCounts,
   flipVertical,
   hexToRgba,
   imageDataToGrid,
@@ -18,6 +19,7 @@ import { RecolorPanel } from './RecolorPanel'
 import { ConsolePalettePanel } from './ConsolePalettePanel'
 import { Dropdown } from './Dropdown'
 import { HardwarePanel } from './HardwarePanel'
+import { useMessageTargets } from '../../desktop/WindowManager'
 import type { ActiveSlot } from './ConsolePalettePanel'
 import { MODES } from './modes'
 import { convertGridToMode, isConstrained } from './modes/constraints'
@@ -99,6 +101,7 @@ export function PixelArtApp() {
   const zoomAnchorRef = useRef<{ row: number; col: number; clientX: number; clientY: number } | null>(null)
 
   const palette = useMemo(() => usedColors(grid), [grid])
+  const paletteTargets = useMessageTargets('palette')
 
   const constrained = isConstrained(mode)
   const backdrop = useMemo(
@@ -247,6 +250,12 @@ export function PixelArtApp() {
 
   function handleFlipVertical() {
     loadGrid(flipVertical(grid))
+  }
+
+  /** Sends the artwork's colors, weighted by pixel count, to another app (e.g. Color Palette). */
+  function sendPalette(send: (typeof paletteTargets)[number]['send']) {
+    const transparentAs = constrained && mode.slot0 === 'backdrop' ? modePalette.backdrop : undefined
+    send({ type: 'palette', colors: colorCounts(grid, transparentAs).map(({ hex, count }) => ({ hex, weight: count })) })
   }
 
   function handleSave() {
@@ -597,6 +606,15 @@ export function PixelArtApp() {
           {!constrained && (
             <Dropdown label="Recolor" variant="panel" align="right" fullWidth>
               <RecolorPanel grid={grid} palette={palette} onBeginStroke={beginStroke} onPaintCells={paintCells} />
+            </Dropdown>
+          )}
+          {paletteTargets.length > 0 && (
+            <Dropdown label="Send to" fullWidth disabled={palette.length === 0 && !backdrop}>
+              {paletteTargets.map((target) => (
+                <button key={target.path} type="button" onClick={() => sendPalette(target.send)}>
+                  {target.label}
+                </button>
+              ))}
             </Dropdown>
           )}
           <div className={styles.previewCorner}>

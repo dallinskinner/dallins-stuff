@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { apps, resolvePath } from '../apps/registry'
+import { apps, appsAccepting, resolvePath } from '../apps/registry'
+import type { AppMessage } from '../apps/messages'
 import { AppWindow } from '../apps/AppWindow'
 import { DesktopIcon } from './DesktopIcon'
 import { WindowContext, WindowManagerContext } from './WindowManager'
+import type { Delivery } from './WindowManager'
 import styles from './Desktop.module.css'
 
 const APPS_PREFIX = '/apps/'
@@ -52,7 +54,31 @@ export function Desktop() {
     [zOrder, focusedPath, navigate],
   )
 
-  const manager = useMemo(() => ({ openPaths, focusedPath, focus, close }), [openPaths, focusedPath, focus, close])
+  // Messages between apps wait here until the recipient's window mounts and acknowledges them.
+  const [inbox, setInbox] = useState<Record<string, Delivery[]>>({})
+  const nextDeliveryId = useRef(1)
+
+  const send = useCallback(
+    (from: string, to: string, message: AppMessage) => {
+      const delivery = { id: nextDeliveryId.current++, from, message }
+      setInbox((prev) => ({ ...prev, [to]: [...(prev[to] ?? []), delivery] }))
+      navigate(`${APPS_PREFIX}${to}`)
+    },
+    [navigate],
+  )
+
+  const acknowledge = useCallback((path: string, ids: number[]) => {
+    setInbox((prev) => {
+      const { [path]: deliveries = [], ...rest } = prev
+      const remaining = deliveries.filter((d) => !ids.includes(d.id))
+      return remaining.length > 0 ? { ...rest, [path]: remaining } : rest
+    })
+  }, [])
+
+  const manager = useMemo(
+    () => ({ openPaths, focusedPath, focus, close, send, inbox, acknowledge, targetsFor: appsAccepting }),
+    [openPaths, focusedPath, focus, close, send, inbox, acknowledge],
+  )
 
   return (
     <WindowManagerContext.Provider value={manager}>
