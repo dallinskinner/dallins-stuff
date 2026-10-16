@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { oklabToRgb, rgbToOklch } from '../image-tools/colorConversion'
 import type { PixelGrid, RGBA } from './pixelGrid'
 import { hexToRgba, rgbaToHex } from './pixelGrid'
+import type { Selection } from './selection'
+import { isSelected } from './selection'
 import styles from './RecolorPanel.module.css'
 
 interface Cell {
@@ -20,6 +22,8 @@ interface Session {
 interface RecolorPanelProps {
   grid: PixelGrid
   palette: string[]
+  /** When set, only pixels inside it are recolored. */
+  selection: Selection | null
   onBeginStroke: () => void
   onPaintCells: (cells: Cell[], color: RGBA) => void
 }
@@ -29,7 +33,7 @@ const MAX_CHROMA = 0.4
 /** Pick a color from the artwork, then drag OKLCh sliders to recolor every pixel that had it. The
  *  affected cells are captured once at pick time, so the recolor stays reversible and doesn't merge
  *  with other pixels that happen to land on the same color mid-drag. */
-export function RecolorPanel({ grid, palette, onBeginStroke, onPaintCells }: RecolorPanelProps) {
+export function RecolorPanel({ grid, palette, selection, onBeginStroke, onPaintCells }: RecolorPanelProps) {
   const [session, setSession] = useState<Session | null>(null)
   const hasPushedUndo = useRef(false)
 
@@ -39,7 +43,7 @@ export function RecolorPanel({ grid, palette, onBeginStroke, onPaintCells }: Rec
     let alpha = 255
     grid.forEach((row, r) =>
       row.forEach((cell, c) => {
-        if (cell.a !== 0 && rgbaToHex(cell) === hex) {
+        if (cell.a !== 0 && rgbaToHex(cell) === hex && (!selection || isSelected(selection, { row: r, col: c }))) {
           cells.push({ row: r, col: c })
           alpha = cell.a
         }
@@ -67,10 +71,10 @@ export function RecolorPanel({ grid, palette, onBeginStroke, onPaintCells }: Rec
     return (
       <div className={styles.panel}>
         {palette.length === 0 ? (
-          <p className={styles.hint}>No colors yet</p>
+          <p className={styles.hint}>{selection ? 'No colors in the selection' : 'No colors yet'}</p>
         ) : (
           <>
-            <p className={styles.hint}>Pick a color to recolor</p>
+            <p className={styles.hint}>{selection ? 'Pick a color to recolor in the selection' : 'Pick a color to recolor'}</p>
             <div className={styles.swatches}>
               {palette.map((hex) => (
                 <button

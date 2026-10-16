@@ -4,7 +4,7 @@
   flex-shrink: 0;
 }
 
-/* Keeps overlays that can move past the art (the reference image, a dragged selection) cropped to it.
+/* Keeps overlays that can move past the art (the reference image) cropped to it.
    The wrapper itself doesn't clip, so a curve's handle line can be drawn beyond the edges. */
 .clip {
   position: absolute;
@@ -166,8 +166,24 @@
   }
 }
 
+/* Traces the selection's actual shape; the svg's own bounds crop a selection dragged past the art. */
+.selectionSvg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.selectionPath {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-dasharray: 4 4;
+  animation: marchingAntsLine 0.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .selectionOverlay,
+  .selectionPath,
   .handleLine {
     animation: none;
   }

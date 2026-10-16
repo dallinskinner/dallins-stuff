@@ -262,8 +262,14 @@ function roundHalfAwayFromCenter(sum: number, offset: number): number {
   return offset >= 0 ? Math.ceil(half) : Math.floor(half)
 }
 
-/** 4-connected region of cells matching the start cell's color, for a flood fill. */
-export function floodFillCells(grid: PixelGrid, startRow: number, startCol: number): { row: number; col: number }[] {
+/** 4-connected region of cells matching the start cell's color, for a flood fill. With `within`, the region
+ *  also stops at cells it rejects (e.g. the edge of a selection). */
+export function floodFillCells(
+  grid: PixelGrid,
+  startRow: number,
+  startCol: number,
+  within?: (cell: { row: number; col: number }) => boolean,
+): { row: number; col: number }[] {
   const height = grid.length
   const width = grid[0]?.length ?? 0
   const target = grid[startRow][startCol]
@@ -282,6 +288,7 @@ export function floodFillCells(grid: PixelGrid, startRow: number, startCol: numb
     ]
     for (const n of neighbors) {
       if (n.row < 0 || n.row >= height || n.col < 0 || n.col >= width) continue
+      if (within && !within(n)) continue
       const key = `${n.row},${n.col}`
       if (visited.has(key)) continue
       visited.add(key)

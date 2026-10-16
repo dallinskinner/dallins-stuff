@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import type { DitherPattern, PixelGrid, RGBA } from './pixelGrid'
 import {
   TRANSPARENT,
@@ -10,11 +10,17 @@ import {
   gridToImageData,
   rectangleCells,
 } from './pixelGrid'
+import type { Cell, SelectMode, Selection } from './selection'
+import {
+  clipSelection,
+  combineSelection,
+  isSelected,
+  rectCells,
+  selectionOutline,
+  translateSelection,
+} from './selection'
 import styles from './PixelCanvas.module.css'
-
-type Cell = { row: number; col: number }
-type Rect = { rowMin: number; rowMax: number; colMin: number; colMax: number }
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select' | 'gradient'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select' | 'wand' | 'gradient'
 type ShapeTool = 'ellipse' | 'rectangle' | 'line'
 
 /** A curve is drawn in three drags: the line's two anchors, then each anchor's control-point handle. */
@@ -26,11 +32,13 @@ interface CurveState {
   p3: Cell
 }
 
-/** A selection being dragged to a new spot: the cut pixels, floating at their current top-left. */
+/** A selection being dragged to a new spot: the cut pixels over its bounding box (null where a cell isn't
+ *  selected), floating at their current top-left, and the selection as it was before the move. */
 interface FloatingSelection {
   row: number
   col: number
-  data: RGBA[][]
+  data: (RGBA | null)[][]
+  selection: Selection
 }
 
 interface MoveGrab {
@@ -84,6 +92,9 @@ interface PixelCanvasProps {
   onBeginStroke: () => void
   onPaintCell: (row: number, col: number, color: RGBA) => void
   onPaintCells: (cells: Cell[], color: RGBA) => void
+  /** Owned by the app so other controls (Delete, Recolor) can act on it; null when nothing is selected. */
+  selection: Selection | null
+  onSelectionChange: (selection: Selection | null) => void
 }
 
 const SHAPE_CELLS: Record<ShapeTool, (r0: number, c0: number, r1: number, c1: number) => { row: number; col: number }[]> =
@@ -105,17 +116,9 @@ function inBounds(cell: { row: number; col: number }, width: number, height: num
   return cell.row >= 0 && cell.row < height && cell.col >= 0 && cell.col < width
 }
 
-function cellInRect(cell: Cell, rect: Rect): boolean {
-  return cell.row >= rect.rowMin && cell.row <= rect.rowMax && cell.col >= rect.colMin && cell.col <= rect.colMax
-}
-
-function floatingRect(floating: FloatingSelection): Rect {
-  return {
-    rowMin: floating.row,
-    rowMax: floating.row + floating.data.length - 1,
-    colMin: floating.col,
-    colMax: floating.col + (floating.data[0]?.length ?? 0) - 1,
-  }
+/** Shift adds to the selection, Alt subtracts from it, otherwise a new selection replaces it. */
+function selectModeFor(e: React.PointerEvent): SelectMode {
+  return e.altKey ? 'subtract' : e.shiftKey ? 'add' : 'replace'
 }
 
 /** Clamps the drag end cell so the bounding box is square, anchored at `start`, for a perfect circle. */
@@ -157,7 +160,7 @@ const SHIFT_END_CELL: Record<
 }
 
 export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(function PixelCanvas(
-  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, backdrop, reference, hardware, onBeginStroke, onPaintCell, onPaintCells },
+  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, backdrop, reference, hardware, onBeginStroke, onPaintCell, onPaintCells, selection, onSelectionChange },
   ref,
 ) {
   const isPaintingRef = useRef(false)
@@ -166,12 +169,13 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   const curveRef = useRef<CurveState | null>(null)
   const selectModeRef = useRef<'create' | 'move' | null>(null)
   const moveGrabRef = useRef<MoveGrab | null>(null)
+  /** While dragging out a rectangle selection: the selection it combines with, how, and whether it's been dragged. */
+  const selectBaseRef = useRef<{ base: Selection | null; mode: SelectMode; dragged: boolean } | null>(null)
   const [previewCells, setPreviewCells] = useState<Cell[]>([])
   const gradientCanvasRef = useRef<HTMLCanvasElement>(null)
   const gradientFrameRef = useRef(0)
   const [handleLine, setHandleLine] = useState<{ from: Cell; to: Cell } | null>(null)
   const [anchorCell, setAnchorCell] = useState<Cell | null>(null)
-  const [selection, setSelection] = useState<Rect | null>(null)
   const [floatingPreview, setFloatingPreview] = useState<FloatingSelection | null>(null)
   const [hoveringSelection, setHoveringSelection] = useState(false)
 
@@ -189,19 +193,23 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
 
   const [prevTool, setPrevTool] = useState(tool)
   if (prevTool !== tool) {
-    const previous = prevTool
     setPrevTool(tool)
     if (previewCells.length > 0) setPreviewCells([])
     if (handleLine) setHandleLine(null)
     if (anchorCell) setAnchorCell(null)
-    // The gradient tool clips to the selection, so a selection survives switching between it and the select tool.
-    const keepSelection = (previous === 'select' && tool === 'gradient') || (previous === 'gradient' && tool === 'select')
-    if (selection && !keepSelection) setSelection(null)
     if (floatingPreview) setFloatingPreview(null)
     if (hoveringSelection) setHoveringSelection(false)
   }
 
-  const activeSelectionRect = floatingPreview ? floatingRect(floatingPreview) : selection
+  // While a selection is being moved, its outline follows the floating pixels.
+  const activeSelection = floatingPreview
+    ? translateSelection(
+        floatingPreview.selection,
+        floatingPreview.row - floatingPreview.selection.bounds.rowMin,
+        floatingPreview.col - floatingPreview.selection.bounds.colMin,
+      )
+    : selection
+  const selectionPath = useMemo(() => (activeSelection ? selectionOutline(activeSelection, cellSize) : ''), [activeSelection, cellSize])
 
   useEffect(() => {
     const canvas = (ref as React.RefObject<HTMLCanvasElement>).current
@@ -223,7 +231,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       for (let r = 0; r < floatingPreview.data.length; r++) {
         for (let c = 0; c < floatingPreview.data[r].length; c++) {
           const pixel = floatingPreview.data[r][c]
-          if (pixel.a === 0) continue
+          if (!pixel || pixel.a === 0) continue
           const cell = { row: floatingPreview.row + r, col: floatingPreview.col + c }
           if (!inBounds(cell, width, height)) continue
           ctx.fillStyle = `rgba(${pixel.r}, ${pixel.g}, ${pixel.b}, ${pixel.a / 255})`
@@ -277,8 +285,9 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       const ctx = gradientCanvasRef.current?.getContext('2d')
       if (!ctx) return
       const image = ctx.createImageData(width, height)
-      const bounds = selection ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
+      const bounds = selection?.bounds ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
       for (const cell of gradientCells(start.row, start.col, end.row, end.col, ditherPattern, ditherSize, bounds)) {
+        if (selection && !isSelected(selection, cell)) continue
         const paint = cell.useSecondary ? secondaryColor : color
         const i = (cell.row * width + cell.col) * 4
         image.data[i] = paint.r
@@ -295,12 +304,13 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     gradientCanvasRef.current?.getContext('2d')?.clearRect(0, 0, width, height)
   }
 
-  /** Dithers the gradient into the selection (or whole canvas) in one pass; only run on release, never per pointer move. */
+  /** Dithers the gradient into the selection's shape (or the whole canvas) in one pass; only run on release, never per pointer move. */
   function commitGradient(start: Cell, end: Cell) {
-    const bounds = selection ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
+    const bounds = selection?.bounds ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
     const primary: Cell[] = []
     const secondary: Cell[] = []
     for (const cell of gradientCells(start.row, start.col, end.row, end.col, ditherPattern, ditherSize, bounds)) {
+      if (selection && !isSelected(selection, cell)) continue
       ;(cell.useSecondary ? secondary : primary).push(cell)
     }
     onPaintCells(primary, color)
@@ -355,34 +365,42 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       return
     }
 
+    if (tool === 'wand') {
+      // Selects the same-colored region a fill would cover.
+      onSelectionChange(combineSelection(selection, floodFillCells(grid, cell.row, cell.col), selectModeFor(e)))
+      return
+    }
+
     if (tool === 'select') {
       isPaintingRef.current = true
-      if (selection && cellInRect(cell, selection)) {
+      const mode = selectModeFor(e)
+      if (mode === 'replace' && selection && isSelected(selection, cell)) {
+        // Lifts the selected pixels (and only those) off the canvas to float with the pointer.
         onBeginStroke()
-        const rows = selection.rowMax - selection.rowMin + 1
-        const cols = selection.colMax - selection.colMin + 1
-        const data: RGBA[][] = []
-        for (let r = 0; r < rows; r++) {
-          const row: RGBA[] = []
-          for (let c = 0; c < cols; c++) row.push(grid[selection.rowMin + r][selection.colMin + c])
-          data.push(row)
+        const { rowMin, rowMax, colMin, colMax } = selection.bounds
+        const data: (RGBA | null)[][] = []
+        for (let row = rowMin; row <= rowMax; row++) {
+          const line: (RGBA | null)[] = []
+          for (let col = colMin; col <= colMax; col++) line.push(isSelected(selection, { row, col }) ? grid[row][col] : null)
+          data.push(line)
         }
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) onPaintCell(selection.rowMin + r, selection.colMin + c, TRANSPARENT)
-        }
+        for (const c of selection.cells) onPaintCell(c.row, c.col, TRANSPARENT)
         selectModeRef.current = 'move'
-        moveGrabRef.current = { startCell: cell, originRow: selection.rowMin, originCol: selection.colMin }
-        setFloatingPreview({ row: selection.rowMin, col: selection.colMin, data })
+        moveGrabRef.current = { startCell: cell, originRow: rowMin, originCol: colMin }
+        setFloatingPreview({ row: rowMin, col: colMin, data, selection })
         setHoveringSelection(true)
       } else {
         selectModeRef.current = 'create'
         shapeStartRef.current = cell
-        setSelection({ rowMin: cell.row, rowMax: cell.row, colMin: cell.col, colMax: cell.col })
+        selectBaseRef.current = { base: selection, mode, dragged: false }
+        onSelectionChange(combineSelection(selection, [cell], mode))
         setHoveringSelection(false)
       }
       return
     }
 
+    // A fill can't reach outside the selection, so clicking outside it does nothing (and adds no undo step).
+    if (tool === 'fill' && selection && !isSelected(selection, cell)) return
     onBeginStroke()
     if (tool === 'gradient') {
       isPaintingRef.current = true
@@ -394,7 +412,9 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       shapeStartRef.current = cell
       setPreviewCells([cell])
     } else if (tool === 'fill') {
-      for (const c of floodFillCells(grid, cell.row, cell.col)) onPaintCell(c.row, c.col, color)
+      // With a selection, the fill stays inside it.
+      const within = selection ? (c: Cell) => isSelected(selection, c) : undefined
+      for (const c of floodFillCells(grid, cell.row, cell.col, within)) onPaintCell(c.row, c.col, color)
     } else {
       isPaintingRef.current = true
       paintAt(e)
@@ -404,7 +424,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (tool === 'select' && !isPaintingRef.current) {
       const cell = getCell(e)
-      const hover = !!(cell && selection && cellInRect(cell, selection))
+      const hover = !!(cell && selection && isSelected(selection, cell))
       if (hover !== hoveringSelection) setHoveringSelection(hover)
     }
     if (!isPaintingRef.current) return
@@ -432,13 +452,16 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       if (!cell) return
       if (selectModeRef.current === 'create') {
         const start = shapeStartRef.current
-        if (!start) return
-        setSelection({
+        const base = selectBaseRef.current
+        if (!start || !base) return
+        if (cell.row !== start.row || cell.col !== start.col) base.dragged = true
+        const rect = {
           rowMin: Math.min(start.row, cell.row),
           rowMax: Math.max(start.row, cell.row),
           colMin: Math.min(start.col, cell.col),
           colMax: Math.max(start.col, cell.col),
-        })
+        }
+        onSelectionChange(combineSelection(base.base, rectCells(rect), base.mode))
       } else if (selectModeRef.current === 'move') {
         const grab = moveGrabRef.current
         if (!grab) return
@@ -498,23 +521,22 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     }
     if (tool === 'select') {
       if (selectModeRef.current === 'create') {
-        const collapsed = selection && selection.rowMin === selection.rowMax && selection.colMin === selection.colMax
-        if (collapsed) {
-          setSelection(null)
-          setHoveringSelection(false)
-        } else {
-          setHoveringSelection(true)
-        }
+        // A click without a drag deselects (or, with Shift/Alt, leaves the selection as it was).
+        const base = selectBaseRef.current
+        if (base && !base.dragged) onSelectionChange(base.mode === 'replace' ? null : base.base)
+        selectBaseRef.current = null
+        setHoveringSelection(false)
       } else if (selectModeRef.current === 'move' && floatingPreview) {
-        const rect = floatingRect(floatingPreview)
         for (let r = 0; r < floatingPreview.data.length; r++) {
           for (let c = 0; c < floatingPreview.data[r].length; c++) {
+            const pixel = floatingPreview.data[r][c]
             const cell = { row: floatingPreview.row + r, col: floatingPreview.col + c }
-            if (!inBounds(cell, width, height)) continue
-            onPaintCell(cell.row, cell.col, floatingPreview.data[r][c])
+            if (!pixel || !inBounds(cell, width, height)) continue
+            onPaintCell(cell.row, cell.col, pixel)
           }
         }
-        setSelection(rect)
+        // Whatever was dragged off the canvas is gone, so it drops out of the selection too.
+        onSelectionChange(activeSelection && clipSelection(activeSelection, width, height))
         setFloatingPreview(null)
         setHoveringSelection(true)
       }
@@ -617,20 +639,10 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
           }
         />
       )}
-      {activeSelectionRect && (
-        <div className={styles.clip}>
-          <div
-            className={styles.selectionOverlay}
-            style={
-              {
-                '--sel-x': `${activeSelectionRect.colMin * cellSize}px`,
-                '--sel-y': `${activeSelectionRect.rowMin * cellSize}px`,
-                '--sel-w': `${(activeSelectionRect.colMax - activeSelectionRect.colMin + 1) * cellSize}px`,
-                '--sel-h': `${(activeSelectionRect.rowMax - activeSelectionRect.rowMin + 1) * cellSize}px`,
-              } as React.CSSProperties
-            }
-          />
-        </div>
+      {selectionPath && (
+        <svg className={styles.selectionSvg} width={width * cellSize} height={height * cellSize}>
+          <path className={styles.selectionPath} d={selectionPath} />
+        </svg>
       )}
       {handleLine && (
         <svg className={styles.handleLineSvg} width={width * cellSize} height={height * cellSize}>

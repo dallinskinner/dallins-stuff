@@ -8,6 +8,7 @@ import {
   flipVertical,
   hexToRgba,
   imageDataToGrid,
+  rgbaToHex,
   usedColors,
 } from './pixelGrid'
 import type { DitherPattern } from './pixelGrid'
@@ -19,7 +20,8 @@ import { RecolorPanel } from './RecolorPanel'
 import { ConsolePalettePanel } from './ConsolePalettePanel'
 import { Dropdown } from './Dropdown'
 import { HardwarePanel } from './HardwarePanel'
-import { useMessageTargets } from '../../desktop/WindowManager'
+import { useMessageTargets, useWindowFocus } from '../../desktop/WindowManager'
+import type { Selection } from './selection'
 import type { ActiveSlot } from './ConsolePalettePanel'
 import { MODES } from './modes'
 import { convertGridToMode, isConstrained } from './modes/constraints'
@@ -35,12 +37,16 @@ import squareIcon from '../../assets/icons/square.png'
 import lineIcon from '../../assets/icons/line.png'
 import curveIcon from '../../assets/icons/curve.png'
 import selectIcon from '../../assets/icons/select.png'
+import wandIcon from '../../assets/icons/wand.png'
 import undoIcon from '../../assets/icons/undo.png'
 import redoIcon from '../../assets/icons/redo.png'
 import trashIcon from '../../assets/icons/trash.png'
 import styles from './PixelArtApp.module.css'
 
-type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select' | 'gradient'
+type Tool = 'brush' | 'eraser' | 'ellipse' | 'fill' | 'rectangle' | 'line' | 'curve' | 'select' | 'wand' | 'gradient'
+
+/** Tools that act on the selection (the fill and gradient stay inside it); switching among them keeps it. */
+const SELECTION_TOOLS: Tool[] = ['select', 'wand', 'gradient', 'fill']
 
 const FREESTYLE_DEFAULT_ZOOM = 16
 const CANVAS_ZOOM_MIN = 1
@@ -139,6 +145,54 @@ export function PixelArtApp() {
   // Grids larger than the frame (e.g. NES) can't fit even at 1x, so scale them down to fit instead of offering integer zoom.
   const previewFitScale = MAX_PREVIEW / Math.max(width, height)
   const previewShrunk = previewFitScale < 1
+  const [selection, setSelection] = useState<Selection | null>(null)
+  // The selection survives switching among the tools that use it, but not to other tools or a new canvas size.
+  const [selectionContext, setSelectionContext] = useState({ tool, width, height })
+  if (selectionContext.tool !== tool || selectionContext.width !== width || selectionContext.height !== height) {
+    const keep =
+      SELECTION_TOOLS.includes(selectionContext.tool) &&
+      SELECTION_TOOLS.includes(tool) &&
+      selectionContext.width === width &&
+      selectionContext.height === height
+    setSelectionContext({ tool, width, height })
+    if (selection && !keep) setSelection(null)
+  }
+
+  // Recolor only offers (and only changes) colors inside the selection, when there is one.
+  const recolorPalette = useMemo(() => {
+    if (!selection) return palette
+    const inSelection = new Set<string>()
+    for (const { row, col } of selection.cells) {
+      const cell = grid[row]?.[col]
+      if (cell && cell.a !== 0) inSelection.add(rgbaToHex(cell))
+    }
+    return palette.filter((hex) => inSelection.has(hex))
+  }, [selection, grid, palette])
+
+  // Delete/Backspace erases the selected pixels (one undo step); Escape deselects. Only while this window is
+  // focused and not while typing in a field.
+  const { isFocused } = useWindowFocus()
+  const selectionKeysRef = useRef<(e: KeyboardEvent) => void>(() => {})
+  useLayoutEffect(() => {
+    selectionKeysRef.current = (e) => {
+      if (!selection || (e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setSelection(null)
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        beginStroke()
+        paintCells(selection.cells, TRANSPARENT)
+      }
+    }
+  })
+  useEffect(() => {
+    if (!isFocused) return
+    const handleKeyDown = (e: KeyboardEvent) => selectionKeysRef.current(e)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFocused])
+
   const activePreset = mode.sizes.find((p) => p.width === width && p.height === height)?.id ?? ''
 
   // Frees the previous reference image's blob when it's replaced or the app closes.
@@ -415,9 +469,20 @@ export function PixelArtApp() {
               className={styles.toolButton}
               aria-pressed={tool === 'select'}
               aria-label="Select"
+              title="Select (Shift adds, Alt subtracts; drag inside to move)"
               onClick={() => setTool('select')}
             >
               <span className={styles.toolIcon} style={{ '--icon': `url(${selectIcon})` } as React.CSSProperties} />
+            </button>
+            <button
+              type="button"
+              className={styles.toolButton}
+              aria-pressed={tool === 'wand'}
+              aria-label="Flood select"
+              title="Flood select (Shift adds, Alt subtracts)"
+              onClick={() => setTool('wand')}
+            >
+              <span className={styles.toolIcon} style={{ '--icon': `url(${wandIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
@@ -552,6 +617,8 @@ export function PixelArtApp() {
                 onBeginStroke={beginStroke}
                 onPaintCell={paintCell}
                 onPaintCells={paintCells}
+                selection={selection}
+                onSelectionChange={setSelection}
               />
             </CanvasRulers>
           </div>
@@ -632,7 +699,13 @@ export function PixelArtApp() {
           </div>
           {!constrained && (
             <Dropdown label="Recolor" variant="panel" align="right" fullWidth>
-              <RecolorPanel grid={grid} palette={palette} onBeginStroke={beginStroke} onPaintCells={paintCells} />
+              <RecolorPanel
+                grid={grid}
+                palette={recolorPalette}
+                selection={selection}
+                onBeginStroke={beginStroke}
+                onPaintCells={paintCells}
+              />
             </Dropdown>
           )}
           {paletteTargets.length > 0 && (
