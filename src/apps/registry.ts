@@ -8,7 +8,7 @@ import { PixelArtApp } from './pixel-art/PixelArtApp'
 import { ScreenSavorApp } from './screen-savor/ScreenSavorApp'
 import { ImageToolsApp } from './image-tools/ImageToolsApp'
 import { ColorPaletteApp } from './color-palette/ColorPaletteApp'
-import infoIcon from '../assets/icons/info.png'
+import aboutMeIcon from '../assets/icons/about-me.png'
 import pencilIcon from '../assets/icons/pencil.png'
 import documentIcon from '../assets/icons/document.png'
 
@@ -16,6 +16,8 @@ export interface AppDefinition {
   id: string
   label: string
   icon?: string
+  /** Draw `icon` as a normal full-color image. By default icons are masks: only their transparency is used, filled with the theme color. */
+  colorIcon?: boolean
   component?: ComponentType
   children?: AppDefinition[]
   /** Overrides Window's default 600px cap, for apps too wide to fit it. A number is in px; a string is used as-is (e.g. a viewport-relative unit for apps that should grow freely). */
@@ -25,7 +27,7 @@ export interface AppDefinition {
 }
 
 export const apps: AppDefinition[] = [
-  { id: 'about', label: 'About Me', icon: infoIcon, component: AboutApp },
+  { id: 'about', label: 'About Me', icon: aboutMeIcon, colorIcon: true, component: AboutApp },
   { id: 'projects', label: 'Projects', icon: documentIcon, component: ProjectsApp },
   { id: 'contact', label: 'Contact', icon: documentIcon, component: ContactApp },
   {

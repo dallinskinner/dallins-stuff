@@ -85,7 +85,7 @@ export function Desktop() {
       <div className={styles.desktop}>
         <div className={styles.icons}>
           {apps.map((app) => (
-            <DesktopIcon key={app.id} to={`/apps/${app.id}`} label={app.label} icon={app.icon} />
+            <DesktopIcon key={app.id} to={`/apps/${app.id}`} label={app.label} icon={app.icon} colorIcon={app.colorIcon} />
           ))}
         </div>
         {openPaths.map((path, i) => (

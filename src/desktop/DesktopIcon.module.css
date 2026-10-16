@@ -37,6 +37,12 @@
   image-rendering: pixelated;
 }
 
+.colorImage {
+  background: var(--icon) center / contain no-repeat;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
 .folder {
   transform: translateX(2px);
 }

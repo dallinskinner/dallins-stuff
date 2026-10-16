@@ -15,7 +15,7 @@ export function DirectoryApp({ entries, basePath }: DirectoryAppProps) {
   return (
     <div className={styles.icons}>
       {entries.map((entry) => (
-        <DesktopIcon key={entry.id} to={`${basePath}/${entry.id}`} label={entry.label} icon={entry.icon} />
+        <DesktopIcon key={entry.id} to={`${basePath}/${entry.id}`} label={entry.label} icon={entry.icon} colorIcon={entry.colorIcon} />
       ))}
     </div>
   )

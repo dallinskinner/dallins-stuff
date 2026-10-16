@@ -11,9 +11,10 @@ interface DesktopIconProps {
   to: string
   label: string
   icon?: string
+  colorIcon?: boolean
 }
 
-export function DesktopIcon({ to, label, icon }: DesktopIconProps) {
+export function DesktopIcon({ to, label, icon, colorIcon = false }: DesktopIconProps) {
   const { onPointerEnter } = useHoverColor()
   const [isHovered, setIsHovered] = useState(false)
   const { openPaths } = useWindowManager()
@@ -50,7 +51,7 @@ export function DesktopIcon({ to, label, icon }: DesktopIconProps) {
       }}
     >
       <div
-        className={icon ? styles.image : `${styles.image} ${styles.folder}`}
+        className={[styles.image, !icon && styles.folder, colorIcon && styles.colorImage].filter(Boolean).join(' ')}
         style={{ '--icon': `url(${image})` } as React.CSSProperties}
       />
       <div className={styles.label}>{label}</div>
