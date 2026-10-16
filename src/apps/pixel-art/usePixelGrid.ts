@@ -64,14 +64,23 @@ function withTiles(s: Snapshot): Omit<PixelGridState, 'undoStack' | 'redoStack' 
 
 let rejectionId = 0
 
-export function usePixelGrid(width: number, height: number, activeSubpalette: number, strict = true): UsePixelGridResult {
+/** Artwork to start from (e.g. a restored autosave) instead of a blank freestyle canvas. Only read on first render. */
+export type InitialArt = Snapshot
+
+export function usePixelGrid(
+  width: number,
+  height: number,
+  activeSubpalette: number,
+  strict = true,
+  initial?: InitialArt,
+): UsePixelGridResult {
   // The state lives in a ref so a drag that paints many cells in one event sees each paint's result immediately
   // (needed to refuse a paint based on the one before it); `bump` re-renders after every change.
   const stateRef = useRef<PixelGridState | null>(null)
   const [, bump] = useReducer((n: number) => n + 1, 0)
   if (!stateRef.current) {
     stateRef.current = {
-      ...withTiles({ grid: createGrid(width, height), mode: FREESTYLE, palette: FREESTYLE.defaultPalette, owners: [] }),
+      ...withTiles(initial ?? { grid: createGrid(width, height), mode: FREESTYLE, palette: FREESTYLE.defaultPalette, owners: [] }),
       undoStack: [],
       redoStack: [],
       rejection: null,

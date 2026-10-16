@@ -25,6 +25,7 @@ import { MODES } from './modes'
 import { convertGridToMode, isConstrained } from './modes/constraints'
 import { prepareReferenceImage } from './referenceImage'
 import { parseProject, serializeProject } from './projectFile'
+import { loadAutosave, writeAutosave } from './autosave'
 import pencilIcon from '../../assets/icons/pencil.png'
 import circleIcon from '../../assets/icons/circle.png'
 import eraserIcon from '../../assets/icons/eraser.png'
@@ -47,8 +48,12 @@ const CANVAS_ZOOM_MAX = 32
 const PREVIEW_ZOOM_MIN = 1
 /** Side length of the fixed preview frame; zoom is capped per-size so width/height * zoom never exceeds it. */
 const MAX_PREVIEW = 128
+/** How long edits must pause before the project is autosaved. */
+const AUTOSAVE_DELAY = 500
 
 export function PixelArtApp() {
+  // Read once: the editor starts from the last autosave, if there is one.
+  const [restored] = useState(loadAutosave)
   const [active, setActive] = useState<ActiveSlot>({ sp: 0, slot: 1 })
   const [strict, setStrict] = useState(true)
   const {
@@ -71,13 +76,13 @@ export function PixelArtApp() {
     setBackdrop,
     undo,
     redo,
-  } = usePixelGrid(GRID_WIDTH, GRID_HEIGHT, active.sp, strict)
+  } = usePixelGrid(GRID_WIDTH, GRID_HEIGHT, active.sp, strict, restored?.project)
   const [colorHex, setColorHex] = useState('#000000')
   const [secondaryHex, setSecondaryHex] = useState('#ffffff')
   const [secondarySlot, setSecondarySlot] = useState(0)
   const [ditherPattern, setDitherPattern] = useState<DitherPattern>('bayer')
   const [ditherSize, setDitherSize] = useState(4)
-  const [fileName, setFileName] = useState('pixel-art')
+  const [fileName, setFileName] = useState(restored?.fileName ?? 'pixel-art')
   const [tool, setTool] = useState<Tool>('brush')
   const [showGrid, setShowGrid] = useState(true)
   const [showRulers, setShowRulers] = useState(false)
@@ -91,7 +96,7 @@ export function PixelArtApp() {
   const referenceInputRef = useRef<HTMLInputElement>(null)
   const [showTiles, setShowTiles] = useState(false)
   const [showRegions, setShowRegions] = useState(false)
-  const [canvasZoom, setCanvasZoom] = useState<number>(FREESTYLE_DEFAULT_ZOOM)
+  const [canvasZoom, setCanvasZoom] = useState<number>(restored?.project.zoom ?? FREESTYLE_DEFAULT_ZOOM)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const projectInputRef = useRef<HTMLInputElement>(null)
@@ -186,6 +191,28 @@ export function PixelArtApp() {
     viewport.scrollLeft += rect.left + anchor.col * canvasZoom - anchor.clientX
     viewport.scrollTop += rect.top + anchor.row * canvasZoom - anchor.clientY
   }, [canvasZoom])
+
+  // Autosaves shortly after edits stop, and right away when the window closes or the page unloads, so a refresh picks
+  // up where you left off. Undo history and the reference image aren't saved.
+  const pendingSaveRef = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    const save = () => {
+      pendingSaveRef.current = null
+      writeAutosave(serializeProject({ mode, grid, palette: modePalette, owners, zoom: canvasZoom }), fileName)
+    }
+    pendingSaveRef.current = save
+    const timer = window.setTimeout(save, AUTOSAVE_DELAY)
+    return () => window.clearTimeout(timer)
+  }, [mode, grid, modePalette, owners, canvasZoom, fileName])
+
+  useEffect(() => {
+    const flush = () => pendingSaveRef.current?.()
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [])
 
   function handleSizeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const preset = mode.sizes.find((p) => p.id === e.target.value)
