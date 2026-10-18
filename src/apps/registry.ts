@@ -16,8 +16,6 @@ export interface AppDefinition {
   id: string
   label: string
   icon?: string
-  /** Draw `icon` as a normal full-color image. By default icons are masks: only their transparency is used, filled with the theme color. */
-  colorIcon?: boolean
   component?: ComponentType
   children?: AppDefinition[]
   /** Overrides Window's default 600px cap, for apps too wide to fit it. A number is in px; a string is used as-is (e.g. a viewport-relative unit for apps that should grow freely). */
@@ -27,7 +25,7 @@ export interface AppDefinition {
 }
 
 export const apps: AppDefinition[] = [
-  { id: 'about', label: 'About Me', icon: aboutMeIcon, colorIcon: true, component: AboutApp },
+  { id: 'about', label: 'About Me', icon: aboutMeIcon, component: AboutApp },
   { id: 'projects', label: 'Projects', icon: documentIcon, component: ProjectsApp },
   { id: 'contact', label: 'Contact', icon: documentIcon, component: ContactApp },
   {
