@@ -5,6 +5,8 @@ import closeIcon from '../assets/icons/close.png'
 
 interface WindowProps {
   title: string
+  /** Mask-style icon shown before the title. */
+  icon?: string
   maxWidth?: number | string
   zIndex: number
   isFocused: boolean
@@ -19,7 +21,7 @@ const MIN_WIDTH = 400
 const MIN_HEIGHT = 200
 const VIEWPORT_MARGIN = 40
 
-export function Window({ title, maxWidth, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
+export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
   const windowRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0, posX: 0, posY: 0 })
@@ -119,6 +121,13 @@ export function Window({ title, maxWidth, zIndex, isFocused, initialOffset = 0, 
         onPointerUp={handleDragEnd}
         onPointerCancel={handleDragEnd}
       >
+        {icon && (
+          <span
+            className={styles.icon}
+            style={{ '--icon': `url(${icon})` } as React.CSSProperties}
+            aria-hidden="true"
+          />
+        )}
         <span className={styles.title}>{title}</span>
         <button
           type="button"

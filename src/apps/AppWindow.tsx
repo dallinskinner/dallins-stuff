@@ -2,6 +2,7 @@ import { resolvePath } from './registry'
 import { Window } from './Window'
 import { DirectoryApp } from './DirectoryApp'
 import { useWindowFocus, useWindowManager } from '../desktop/WindowManager'
+import folderOpenIcon from '../assets/icons/folder-alt-open.png'
 
 interface AppWindowProps {
   /** Resolved app path, e.g. `tools/pixel-art`. */
@@ -25,6 +26,7 @@ export function AppWindow({ path, zIndex, cascadeIndex }: AppWindowProps) {
   return (
     <Window
       title={node.label}
+      icon={node.icon ?? (node.children ? folderOpenIcon : undefined)}
       maxWidth={node.windowMaxWidth}
       zIndex={zIndex}
       isFocused={isFocused}

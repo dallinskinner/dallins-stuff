@@ -11,6 +11,9 @@ import { ColorPaletteApp } from './color-palette/ColorPaletteApp'
 import aboutMeIcon from '../assets/icons/about-me.png'
 import pencilIcon from '../assets/icons/pencil.png'
 import documentIcon from '../assets/icons/document.png'
+import colorPaletteIcon from '../assets/icons/color-palette.png'
+import imageToolsIcon from '../assets/icons/image-tools.png'
+import screenFlavorIcon from '../assets/icons/screen-flavor.png'
 
 export interface AppDefinition {
   id: string
@@ -33,9 +36,9 @@ export const apps: AppDefinition[] = [
     label: 'Tools',
     children: [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 760 },
-      { id: 'screen-savor', label: 'Screen Flavor', icon: documentIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
-      { id: 'image-tools', label: 'Image Tools', icon: documentIcon, component: ImageToolsApp, windowMaxWidth: 760 },
-      { id: 'color-palette', label: 'Color Palette', icon: documentIcon, component: ColorPaletteApp, windowMaxWidth: 760, accepts: ['palette'] },
+      { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
+      { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, windowMaxWidth: 760 },
+      { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, windowMaxWidth: 760, accepts: ['palette'] },
     ],
   },
   {
