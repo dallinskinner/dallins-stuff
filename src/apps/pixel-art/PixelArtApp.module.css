@@ -205,6 +205,29 @@
   cursor: pointer;
 }
 
+.activeColor[data-transparent='true'] {
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 8px 8px;
+}
+
+/* Toggles a gradient end between its color and transparent; sits under that end's swatch. */
+.clearToggle {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 12px;
+}
+
+.clearToggle[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .paletteGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

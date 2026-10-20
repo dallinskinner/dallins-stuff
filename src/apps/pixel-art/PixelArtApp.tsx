@@ -86,6 +86,8 @@ export function PixelArtApp() {
   const [colorHex, setColorHex] = useState('#000000')
   const [secondaryHex, setSecondaryHex] = useState('#ffffff')
   const [secondarySlot, setSecondarySlot] = useState(0)
+  /** Freestyle only: which gradient ends paint transparent instead of their color (constrained modes use slot 0). */
+  const [gradientClear, setGradientClear] = useState({ start: false, end: false })
   const [ditherPattern, setDitherPattern] = useState<DitherPattern>('bayer')
   const [ditherSize, setDitherSize] = useState(4)
   const [fileName, setFileName] = useState(restored?.fileName ?? 'pixel-art')
@@ -126,10 +128,19 @@ export function PixelArtApp() {
       ? TRANSPARENT
       : hexToRgba(modePalette.subpalettes[active.sp][active.slot - 1])
   const secondaryEntry = constrained && secondarySlot > 0 ? modePalette.subpalettes[active.sp]?.[secondarySlot - 1] : undefined
-  const secondaryColor = !constrained ? hexToRgba(secondaryHex) : secondaryEntry ? hexToRgba(secondaryEntry) : TRANSPARENT
+  const secondaryColor = !constrained
+    ? gradientClear.end
+      ? TRANSPARENT
+      : hexToRgba(secondaryHex)
+    : secondaryEntry
+      ? hexToRgba(secondaryEntry)
+      : TRANSPARENT
   const secondaryDisplayHex = !constrained
-    ? secondaryHex
+    ? gradientClear.end
+      ? undefined
+      : secondaryHex
     : secondaryEntry ?? (secondarySlot === 0 && mode.slot0 === 'backdrop' ? modePalette.backdrop : undefined)
+  const gradientStartClear = tool === 'gradient' && !constrained && gradientClear.start
   const paintHex = !constrained
     ? colorHex
     : active.slot === 0
@@ -590,7 +601,7 @@ export function PixelArtApp() {
                 height={height}
                 cellSize={cellSize}
                 tool={tool}
-                color={paintColor}
+                color={tool === 'gradient' && !constrained && gradientClear.start ? TRANSPARENT : paintColor}
                 secondaryColor={secondaryColor}
                 ditherPattern={ditherPattern}
                 ditherSize={ditherSize}
@@ -668,14 +679,18 @@ export function PixelArtApp() {
           <div className={styles.colorRow}>
             <label
               className={styles.activeColor}
-              style={paintHex ? { backgroundColor: paintHex } : undefined}
+              style={paintHex && !gradientStartClear ? { backgroundColor: paintHex } : undefined}
+              data-transparent={!paintHex || gradientStartClear}
               aria-label="Active color"
             >
               {!constrained && (
                 <input
                   type="color"
                   value={colorHex}
-                  onChange={(e) => setColorHex(e.target.value)}
+                  onChange={(e) => {
+                    setColorHex(e.target.value)
+                    setGradientClear((clear) => ({ ...clear, start: false }))
+                  }}
                   className={styles.hiddenColorInput}
                 />
               )}
@@ -684,19 +699,39 @@ export function PixelArtApp() {
               <label
                 className={styles.activeColor}
                 style={secondaryDisplayHex ? { backgroundColor: secondaryDisplayHex } : undefined}
+                data-transparent={!secondaryDisplayHex}
                 aria-label="Secondary color"
               >
                 {!constrained && (
                   <input
                     type="color"
                     value={secondaryHex}
-                    onChange={(e) => setSecondaryHex(e.target.value)}
+                    onChange={(e) => {
+                      setSecondaryHex(e.target.value)
+                      setGradientClear((clear) => ({ ...clear, end: false }))
+                    }}
                     className={styles.hiddenColorInput}
                   />
                 )}
               </label>
             )}
           </div>
+          {tool === 'gradient' && !constrained && (
+            <div className={styles.colorRow}>
+              {(['start', 'end'] as const).map((end) => (
+                <button
+                  key={end}
+                  type="button"
+                  className={styles.clearToggle}
+                  aria-pressed={gradientClear[end]}
+                  title={`Make the gradient's ${end} transparent`}
+                  onClick={() => setGradientClear((clear) => ({ ...clear, [end]: !clear[end] }))}
+                >
+                  Clear
+                </button>
+              ))}
+            </div>
+          )}
           {!constrained && (
             <Dropdown label="Recolor" variant="panel" align="right" fullWidth>
               <RecolorPanel

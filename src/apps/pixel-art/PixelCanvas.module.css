@@ -73,6 +73,11 @@
   image-rendering: pixelated;
 }
 
+/* A gradient preview showing the whole result (see previewGradient) needs the artwork canvas's checkerboard. */
+.tintCanvas[data-composite='true'] {
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 12px 12px;
+}
+
 .tileOverlay,
 .regionOverlay {
   position: absolute;

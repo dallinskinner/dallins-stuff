@@ -282,13 +282,19 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   function previewGradient(start: Cell, end: Cell) {
     cancelAnimationFrame(gradientFrameRef.current)
     gradientFrameRef.current = requestAnimationFrame(() => {
-      const ctx = gradientCanvasRef.current?.getContext('2d')
-      if (!ctx) return
-      const image = ctx.createImageData(width, height)
+      const canvas = gradientCanvasRef.current
+      const ctx = canvas?.getContext('2d')
+      if (!canvas || !ctx) return
+      // A transparent end can't be drawn over the art, so then the overlay shows the whole result instead
+      // (art plus gradient) on its own checkerboard, hiding the artwork canvas beneath it.
+      const composite = color.a === 0 || secondaryColor.a === 0
+      canvas.dataset.composite = String(composite)
+      const image = composite ? gridToImageData(grid, backdrop) : ctx.createImageData(width, height)
       const bounds = selection?.bounds ?? { rowMin: 0, rowMax: height - 1, colMin: 0, colMax: width - 1 }
       for (const cell of gradientCells(start.row, start.col, end.row, end.col, ditherPattern, ditherSize, bounds)) {
         if (selection && !isSelected(selection, cell)) continue
-        const paint = cell.useSecondary ? secondaryColor : color
+        const chosen = cell.useSecondary ? secondaryColor : color
+        const paint = chosen.a === 0 && backdrop ? backdrop : chosen
         const i = (cell.row * width + cell.col) * 4
         image.data[i] = paint.r
         image.data[i + 1] = paint.g
@@ -301,7 +307,10 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
 
   function clearGradientPreview() {
     cancelAnimationFrame(gradientFrameRef.current)
-    gradientCanvasRef.current?.getContext('2d')?.clearRect(0, 0, width, height)
+    const canvas = gradientCanvasRef.current
+    if (!canvas) return
+    canvas.dataset.composite = 'false'
+    canvas.getContext('2d')?.clearRect(0, 0, width, height)
   }
 
   /** Dithers the gradient into the selection's shape (or the whole canvas) in one pass; only run on release, never per pointer move. */
