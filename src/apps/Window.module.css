@@ -11,6 +11,7 @@
   min-height: 200px;
   max-width: var(--window-max-width, 600px);
   max-height: 100vh;
+  max-height: 100dvh;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--background);
@@ -24,6 +25,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   max-width: none;
   max-height: none;
   transform: none;
