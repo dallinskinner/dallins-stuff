@@ -108,7 +108,6 @@ export function PixelArtApp() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const projectInputRef = useRef<HTMLInputElement>(null)
-  const appRef = useRef<HTMLDivElement>(null)
   const canvasViewportRef = useRef<HTMLDivElement>(null)
   const canvasZoomRef = useRef(canvasZoom)
   /** The grid point under the cursor when a wheel zoom started, and where on screen it must stay. */
@@ -217,80 +216,32 @@ export function PixelArtApp() {
     if (previewZoom > previewZoomMax) setPreviewZoom(previewZoomMax)
   }, [previewZoom, previewZoomMax])
 
-  // Ctrl+wheel (what a trackpad pinch sends in Chrome/Firefox) zooms the editing canvas toward the cursor; a plain
-  // wheel scrolls the viewport natively. React makes onWheel passive, so preventDefault (needed to stop the browser's
-  // own page zoom) requires a native listener. Safari sends gesture* events instead of ctrl+wheel for a pinch.
+  // Ctrl+wheel zooms the editing canvas toward the cursor; a plain wheel scrolls the viewport natively. React makes
+  // onWheel passive, so preventDefault (needed to stop the browser's own page zoom) requires a native listener.
   useEffect(() => {
-    const root = appRef.current
     const el = canvasViewportRef.current
-    if (!root || !el) return
-
-    function zoomBy(direction: 1 | -1, clientX: number, clientY: number) {
+    if (!el) return
+    function handleWheel(e: WheelEvent) {
+      if (!e.ctrlKey) return
+      e.preventDefault()
       const canvas = canvasRef.current
       const current = canvasZoomRef.current
-      const next = Math.min(CANVAS_ZOOM_MAX, Math.max(CANVAS_ZOOM_MIN, current + direction))
+      const next = Math.min(CANVAS_ZOOM_MAX, Math.max(CANVAS_ZOOM_MIN, current + (e.deltaY < 0 ? 1 : -1)))
       if (next === current) return
       if (canvas) {
         const rect = canvas.getBoundingClientRect()
         zoomAnchorRef.current = {
-          row: (clientY - rect.top) / current,
-          col: (clientX - rect.left) / current,
-          clientX,
-          clientY,
+          row: (e.clientY - rect.top) / current,
+          col: (e.clientX - rect.left) / current,
+          clientX: e.clientX,
+          clientY: e.clientY,
         }
       }
       canvasZoomRef.current = next
       setCanvasZoom(next)
     }
-
-    function handleWheel(e: WheelEvent) {
-      if (!e.ctrlKey || !root!.contains(e.target as Node)) return
-      // Stop the page zoom wherever the pinch lands in the window, but only zoom the canvas when over its viewport.
-      e.preventDefault()
-      if (el!.contains(e.target as Node)) zoomBy(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY)
-    }
-
-    let lastScale = 1
-    function handleGestureStart(e: Event) {
-      if (!root!.contains(e.target as Node)) return
-      e.preventDefault()
-      lastScale = 1
-    }
-    function handleGestureChange(e: Event) {
-      if (!root!.contains(e.target as Node)) return
-      e.preventDefault()
-      if (!el!.contains(e.target as Node)) return
-      // iPadOS's GestureEvent may carry no pointer position, so fall back to the viewport's center.
-      const g = e as Event & { scale: number; clientX?: number; clientY?: number }
-      const rect = el!.getBoundingClientRect()
-      const scale = g.scale
-      const clientX = g.clientX ?? rect.left + rect.width / 2
-      const clientY = g.clientY ?? rect.top + rect.height / 2
-      // One zoom step per ~15% of pinch.
-      if (scale / lastScale > 1.15) {
-        lastScale = scale
-        zoomBy(1, clientX, clientY)
-      } else if (scale / lastScale < 1 / 1.15) {
-        lastScale = scale
-        zoomBy(-1, clientX, clientY)
-      }
-    }
-    function handleGestureEnd(e: Event) {
-      if (root!.contains(e.target as Node)) e.preventDefault()
-    }
-
-    // On the document in the capture phase, so nothing between here and the root can swallow the event first.
-    const opts = { passive: false, capture: true } as const
-    document.addEventListener('wheel', handleWheel, opts)
-    document.addEventListener('gesturestart', handleGestureStart, opts)
-    document.addEventListener('gesturechange', handleGestureChange, opts)
-    document.addEventListener('gestureend', handleGestureEnd, opts)
-    return () => {
-      document.removeEventListener('wheel', handleWheel, opts)
-      document.removeEventListener('gesturestart', handleGestureStart, opts)
-      document.removeEventListener('gesturechange', handleGestureChange, opts)
-      document.removeEventListener('gestureend', handleGestureEnd, opts)
-    }
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
   }, [])
 
   /** Scrolls the viewport so the anchored grid point sits at its target screen position, at the given zoom. */
@@ -525,7 +476,7 @@ export function PixelArtApp() {
   }
 
   return (
-    <div className={styles.app} ref={appRef}>
+    <div className={styles.app}>
       <div className={styles.menuBar}>
         <div className={styles.historyButtons}>
           <button type="button" onClick={undo} disabled={!canUndo} aria-label="Undo">
