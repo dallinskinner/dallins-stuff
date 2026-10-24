@@ -244,7 +244,7 @@ export function PixelArtApp() {
     }
 
     function handleWheel(e: WheelEvent) {
-      if (!e.ctrlKey) return
+      if (!e.ctrlKey || !root!.contains(e.target as Node)) return
       // Stop the page zoom wherever the pinch lands in the window, but only zoom the canvas when over its viewport.
       e.preventDefault()
       if (el!.contains(e.target as Node)) zoomBy(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY)
@@ -252,10 +252,12 @@ export function PixelArtApp() {
 
     let lastScale = 1
     function handleGestureStart(e: Event) {
+      if (!root!.contains(e.target as Node)) return
       e.preventDefault()
       lastScale = 1
     }
     function handleGestureChange(e: Event) {
+      if (!root!.contains(e.target as Node)) return
       e.preventDefault()
       if (!el!.contains(e.target as Node)) return
       // iPadOS's GestureEvent may carry no pointer position, so fall back to the viewport's center.
@@ -273,19 +275,21 @@ export function PixelArtApp() {
         zoomBy(-1, clientX, clientY)
       }
     }
-    function preventDefault(e: Event) {
-      e.preventDefault()
+    function handleGestureEnd(e: Event) {
+      if (root!.contains(e.target as Node)) e.preventDefault()
     }
 
-    root.addEventListener('wheel', handleWheel, { passive: false })
-    root.addEventListener('gesturestart', handleGestureStart)
-    root.addEventListener('gesturechange', handleGestureChange)
-    root.addEventListener('gestureend', preventDefault)
+    // On the document in the capture phase, so nothing between here and the root can swallow the event first.
+    const opts = { passive: false, capture: true } as const
+    document.addEventListener('wheel', handleWheel, opts)
+    document.addEventListener('gesturestart', handleGestureStart, opts)
+    document.addEventListener('gesturechange', handleGestureChange, opts)
+    document.addEventListener('gestureend', handleGestureEnd, opts)
     return () => {
-      root.removeEventListener('wheel', handleWheel)
-      root.removeEventListener('gesturestart', handleGestureStart)
-      root.removeEventListener('gesturechange', handleGestureChange)
-      root.removeEventListener('gestureend', preventDefault)
+      document.removeEventListener('wheel', handleWheel, opts)
+      document.removeEventListener('gesturestart', handleGestureStart, opts)
+      document.removeEventListener('gesturechange', handleGestureChange, opts)
+      document.removeEventListener('gestureend', handleGestureEnd, opts)
     }
   }, [])
 
