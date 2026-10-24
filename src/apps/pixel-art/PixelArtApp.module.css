@@ -267,6 +267,12 @@
   padding: 0;
   border: none;
   opacity: 0;
+  /* Zero size doesn't clip a file input's inner "Choose File" button in WebKit, which left an invisible, tappable
+     target at the input's static position (next to the undo button on iPad). Clip it and keep it untappable;
+     programmatic click() and label activation still open the picker. */
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
 }
 
 .previewCorner {
