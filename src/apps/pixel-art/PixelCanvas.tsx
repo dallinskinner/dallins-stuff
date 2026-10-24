@@ -90,6 +90,8 @@ interface PixelCanvasProps {
   /** Hardware-mode overlays; omit in freestyle. */
   hardware?: HardwareOverlay
   onBeginStroke: () => void
+  /** Rolls back the stroke begun by `onBeginStroke` (a second finger landed, so it was a pinch, not a stroke). */
+  onCancelStroke: () => void
   onPaintCell: (row: number, col: number, color: RGBA) => void
   onPaintCells: (cells: Cell[], color: RGBA) => void
   /** Owned by the app so other controls (Delete, Recolor) can act on it; null when nothing is selected. */
@@ -160,7 +162,7 @@ const SHIFT_END_CELL: Record<
 }
 
 export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(function PixelCanvas(
-  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, backdrop, reference, hardware, onBeginStroke, onPaintCell, onPaintCells, selection, onSelectionChange },
+  { grid, width, height, cellSize, tool, color, secondaryColor, ditherPattern, ditherSize, showGrid, backdrop, reference, hardware, onBeginStroke, onCancelStroke, onPaintCell, onPaintCells, selection, onSelectionChange },
   ref,
 ) {
   const isPaintingRef = useRef(false)
@@ -171,6 +173,9 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   const moveGrabRef = useRef<MoveGrab | null>(null)
   /** While dragging out a rectangle selection: the selection it combines with, how, and whether it's been dragged. */
   const selectBaseRef = useRef<{ base: Selection | null; mode: SelectMode; dragged: boolean } | null>(null)
+  /** Whether the current gesture has called onBeginStroke (and so owns an undo step), and the touches now down. */
+  const strokeBegunRef = useRef(false)
+  const touchesRef = useRef(new Set<number>())
   const [previewCells, setPreviewCells] = useState<Cell[]>([])
   const gradientCanvasRef = useRef<HTMLCanvasElement>(null)
   const gradientFrameRef = useRef(0)
@@ -349,7 +354,37 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     lastCellRef.current = cell
   }
 
+  /** Drops a half-made stroke without committing it, for when a second finger turns the gesture into a pinch. */
+  function abortStroke() {
+    const base = selectBaseRef.current
+    if (!isPaintingRef.current && !curveRef.current) return
+    isPaintingRef.current = false
+    lastCellRef.current = null
+    shapeStartRef.current = null
+    curveRef.current = null
+    selectModeRef.current = null
+    moveGrabRef.current = null
+    selectBaseRef.current = null
+    clearGradientPreview()
+    setPreviewCells([])
+    setHandleLine(null)
+    setAnchorCell(null)
+    setFloatingPreview(null)
+    if (base) onSelectionChange(base.base)
+    if (strokeBegunRef.current) {
+      strokeBegunRef.current = false
+      onCancelStroke()
+    }
+  }
+
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (e.pointerType === 'touch') {
+      touchesRef.current.add(e.pointerId)
+      if (touchesRef.current.size > 1) {
+        abortStroke()
+        return
+      }
+    }
     if (e.button !== 0) return
     const cell = getCell(e)
     if (!cell) return
@@ -361,6 +396,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       let state = curveRef.current
       if (!state) {
         onBeginStroke()
+        strokeBegunRef.current = true
         state = { phase: 'line', p0: cell, p1: cell, p2: cell, p3: cell }
         curveRef.current = state
       } else if (state.phase === 'bend-start') {
@@ -386,6 +422,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       if (mode === 'replace' && selection && isSelected(selection, cell)) {
         // Lifts the selected pixels (and only those) off the canvas to float with the pointer.
         onBeginStroke()
+        strokeBegunRef.current = true
         const { rowMin, rowMax, colMin, colMax } = selection.bounds
         const data: (RGBA | null)[][] = []
         for (let row = rowMin; row <= rowMax; row++) {
@@ -411,6 +448,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
     // A fill can't reach outside the selection, so clicking outside it does nothing (and adds no undo step).
     if (tool === 'fill' && selection && !isSelected(selection, cell)) return
     onBeginStroke()
+    strokeBegunRef.current = tool !== 'fill'
     if (tool === 'gradient') {
       isPaintingRef.current = true
       shapeStartRef.current = cell
@@ -436,7 +474,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
       const hover = !!(cell && selection && isSelected(selection, cell))
       if (hover !== hoveringSelection) setHoveringSelection(hover)
     }
-    if (!isPaintingRef.current) return
+    if (!isPaintingRef.current || touchesRef.current.size > 1) return
     if (tool === 'curve') {
       const state = curveRef.current
       // The line's anchors stay on the art, but its control handles can be dragged past the edges.
@@ -503,7 +541,9 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
   }
 
   function endStroke(e: React.PointerEvent<HTMLCanvasElement>) {
+    touchesRef.current.delete(e.pointerId)
     if (!isPaintingRef.current) return
+    if (tool !== 'curve') strokeBegunRef.current = false
     e.currentTarget.releasePointerCapture(e.pointerId)
     isPaintingRef.current = false
     lastCellRef.current = null
@@ -522,6 +562,7 @@ export const PixelCanvas = forwardRef<HTMLCanvasElement, PixelCanvasProps>(funct
           onPaintCell(cell.row, cell.col, color)
         }
         curveRef.current = null
+        strokeBegunRef.current = false
         setPreviewCells([])
         setAnchorCell(null)
       }

@@ -244,18 +244,81 @@ export function PixelArtApp() {
     return () => el.removeEventListener('wheel', handleWheel)
   }, [])
 
-  // After a wheel zoom has resized the canvas, scroll so the anchored grid point is back under the cursor.
+  /** Scrolls the viewport so the anchored grid point sits at its target screen position, at the given zoom. */
+  function scrollToAnchor(anchor: { row: number; col: number; clientX: number; clientY: number }, zoom: number) {
+    const viewport = canvasViewportRef.current
+    const canvas = canvasRef.current
+    if (!viewport || !canvas) return
+    const rect = canvas.getBoundingClientRect()
+    viewport.scrollLeft += rect.left + anchor.col * zoom - anchor.clientX
+    viewport.scrollTop += rect.top + anchor.row * zoom - anchor.clientY
+  }
+
+  // After a wheel or pinch zoom has resized the canvas, scroll so the anchored grid point is back under the cursor.
   useLayoutEffect(() => {
     canvasZoomRef.current = canvasZoom
     const anchor = zoomAnchorRef.current
     zoomAnchorRef.current = null
-    const viewport = canvasViewportRef.current
-    const canvas = canvasRef.current
-    if (!anchor || !viewport || !canvas) return
-    const rect = canvas.getBoundingClientRect()
-    viewport.scrollLeft += rect.left + anchor.col * canvasZoom - anchor.clientX
-    viewport.scrollTop += rect.top + anchor.row * canvasZoom - anchor.clientY
+    if (anchor) scrollToAnchor(anchor, canvasZoom)
   }, [canvasZoom])
+
+  // Two-finger touch: pinching zooms the canvas about the fingers' midpoint, and the midpoint dragging pans it.
+  // The grid point under the midpoint when the pinch starts stays under it throughout. Pens and mice are ignored,
+  // so Apple Pencil still draws. (PixelCanvas abandons any stroke the first finger started.)
+  useEffect(() => {
+    const el = canvasViewportRef.current
+    if (!el) return
+    const touches = new Map<number, { x: number; y: number }>()
+    let pinch: { distance: number; zoom: number; row: number; col: number } | null = null
+
+    function measure() {
+      const [a, b] = [...touches.values()]
+      return { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+    }
+
+    function handleDown(e: PointerEvent) {
+      if (e.pointerType !== 'touch') return
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const canvas = canvasRef.current
+      if (touches.size !== 2 || !canvas) return
+      const mid = measure()
+      const rect = canvas.getBoundingClientRect()
+      const zoom = canvasZoomRef.current
+      pinch = { distance: mid.distance, zoom, row: (mid.y - rect.top) / zoom, col: (mid.x - rect.left) / zoom }
+    }
+
+    function handleMove(e: PointerEvent) {
+      if (!touches.has(e.pointerId)) return
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (!pinch || touches.size !== 2) return
+      const mid = measure()
+      const next = Math.min(CANVAS_ZOOM_MAX, Math.max(CANVAS_ZOOM_MIN, Math.round((pinch.zoom * mid.distance) / pinch.distance)))
+      const anchor = { row: pinch.row, col: pinch.col, clientX: mid.x, clientY: mid.y }
+      if (next === canvasZoomRef.current) {
+        scrollToAnchor(anchor, next)
+      } else {
+        zoomAnchorRef.current = anchor
+        canvasZoomRef.current = next
+        setCanvasZoom(next)
+      }
+    }
+
+    function handleEnd(e: PointerEvent) {
+      touches.delete(e.pointerId)
+      pinch = null
+    }
+
+    el.addEventListener('pointerdown', handleDown)
+    el.addEventListener('pointermove', handleMove)
+    el.addEventListener('pointerup', handleEnd)
+    el.addEventListener('pointercancel', handleEnd)
+    return () => {
+      el.removeEventListener('pointerdown', handleDown)
+      el.removeEventListener('pointermove', handleMove)
+      el.removeEventListener('pointerup', handleEnd)
+      el.removeEventListener('pointercancel', handleEnd)
+    }
+  }, [])
 
   // Autosaves shortly after edits stop, and right away when the window closes or the page unloads, so a refresh picks
   // up where you left off. Undo history and the reference image aren't saved.
@@ -626,6 +689,7 @@ export function PixelArtApp() {
                     : undefined
                 }
                 onBeginStroke={beginStroke}
+                onCancelStroke={undo}
                 onPaintCell={paintCell}
                 onPaintCells={paintCells}
                 selection={selection}
