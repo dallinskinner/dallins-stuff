@@ -85,6 +85,56 @@ textarea {
   font: inherit;
 }
 
+/* iOS/iPadOS Safari paints its own button, select and text-field chrome (blue text, gradients, inner
+   shadows, bigger radii). Pin these to the desktop-Chrome look so they render the same everywhere. */
+button,
+select,
+input:not([type]),
+input:is([type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password']),
+textarea {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  margin: 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background-color: ButtonFace;
+  color: ButtonText;
+  text-align: center;
+  text-shadow: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  padding: 1px 6px;
+}
+
+select {
+  padding: 1px 6px;
+  text-align: start;
+}
+
+input:not([type]),
+input:is([type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password']),
+textarea {
+  padding: 1px 2px;
+  text-align: start;
+  background-color: Field;
+  color: FieldText;
+  border-color: ButtonBorder;
+  border-width: 1px;
+}
+
+/* Author colors above beat the UA's disabled styling, and iOS also fades disabled controls itself. */
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
+  opacity: 1;
+  color: color-mix(in srgb, ButtonText 60%, transparent);
+}
+
 h1,
 h2,
 h3,
