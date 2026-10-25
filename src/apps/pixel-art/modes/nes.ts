@@ -33,6 +33,7 @@ export const NES_SPRITE: HardwareMode = {
   label: 'NES Sprites',
   sizes: [
     { id: '8x8', label: '8 × 8 Sprite', width: 8, height: 8, defaultZoom: 32 },
+    { id: '8x16', label: '8 × 16 Sprite', width: 8, height: 16, defaultZoom: 32 },
     { id: '16x16', label: '16 × 16 Sprite', width: 16, height: 16, defaultZoom: 24 },
     { id: '32x32', label: '32 × 32 Sprite', width: 32, height: 32, defaultZoom: 16 },
     { id: '128x128', label: '128 × 128 Pattern Table', width: 128, height: 128, defaultZoom: 5 },

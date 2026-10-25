@@ -51,6 +51,8 @@ const SELECTION_TOOLS: Tool[] = ['select', 'wand', 'gradient', 'fill']
 const FREESTYLE_DEFAULT_ZOOM = 16
 const CANVAS_ZOOM_MIN = 1
 const CANVAS_ZOOM_MAX = 32
+const CUSTOM_SIZE_ID = 'custom'
+const CUSTOM_SIZE_MAX = 512
 const PREVIEW_ZOOM_MIN = 1
 /** Side length of the fixed preview frame; zoom is capped per-size so width/height * zoom never exceeds it. */
 const MAX_PREVIEW = 128
@@ -205,6 +207,9 @@ export function PixelArtApp() {
   }, [isFocused])
 
   const activePreset = mode.sizes.find((p) => p.width === width && p.height === height)?.id ?? ''
+  // Freestyle can take any size; a canvas that matches no preset (e.g. restored from autosave) counts as custom too.
+  const [customSize, setCustomSize] = useState(false)
+  const isCustomSize = !constrained && (customSize || activePreset === '')
 
   // Frees the previous reference image's blob when it's replaced or the app closes.
   useEffect(() => {
@@ -343,10 +348,22 @@ export function PixelArtApp() {
   }, [])
 
   function handleSizeChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (e.target.value === CUSTOM_SIZE_ID) {
+      setCustomSize(true)
+      return
+    }
+    setCustomSize(false)
     const preset = mode.sizes.find((p) => p.id === e.target.value)
     if (!preset) return
     resize(preset.width, preset.height)
     setCanvasZoom(preset.defaultZoom)
+  }
+
+  function handleCustomDimension(axis: 'width' | 'height', value: string) {
+    const n = Math.round(Number(value))
+    if (!Number.isFinite(n) || n < 1) return
+    const clamped = Math.min(CUSTOM_SIZE_MAX, n)
+    resize(axis === 'width' ? clamped : width, axis === 'height' ? clamped : height)
   }
 
   function resetReferenceTransform() {
@@ -841,13 +858,42 @@ export function PixelArtApp() {
             </option>
           ))}
         </select>
-        <select aria-label="Size" value={activePreset} onChange={handleSizeChange} disabled={mode.sizes.length < 2}>
+        <select
+          aria-label="Size"
+          value={isCustomSize ? CUSTOM_SIZE_ID : activePreset}
+          onChange={handleSizeChange}
+          disabled={mode.sizes.length < 2}
+        >
           {mode.sizes.map((preset) => (
             <option key={preset.id} value={preset.id}>
               {preset.label}
             </option>
           ))}
+          {!constrained && <option value={CUSTOM_SIZE_ID}>Custom…</option>}
         </select>
+        {isCustomSize && (
+          <>
+            <input
+              className={styles.sizeInput}
+              type="number"
+              aria-label="Canvas width"
+              min={1}
+              max={CUSTOM_SIZE_MAX}
+              defaultValue={width}
+              onChange={(e) => handleCustomDimension('width', e.target.value)}
+            />
+            ×
+            <input
+              className={styles.sizeInput}
+              type="number"
+              aria-label="Canvas height"
+              min={1}
+              max={CUSTOM_SIZE_MAX}
+              defaultValue={height}
+              onChange={(e) => handleCustomDimension('height', e.target.value)}
+            />
+          </>
+        )}
         <label>
           <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
           Show Grid

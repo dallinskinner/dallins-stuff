@@ -356,3 +356,7 @@
   width: 80px;
   accent-color: var(--accent);
 }
+
+.sizeInput {
+  width: 5em;
+}
