@@ -3,11 +3,21 @@ import { useHoverColor } from '../theme/useHoverColor'
 import styles from './Window.module.css'
 import closeIcon from '../assets/icons/close.png'
 
+/** Pixel dimensions; either side may be left out. */
+export interface WindowSize {
+  width?: number
+  height?: number
+}
+
 interface WindowProps {
   title: string
   /** Mask-style icon shown before the title. */
   icon?: string
-  maxWidth?: number | string
+  /** Widest the window opens at (default 600px); narrower content opens narrower. Resizing can go past it. */
+  openingWidth?: number | string
+  /** Hard limits, enforced on open and while resizing. Default min is 400×200; default max is the viewport. */
+  minSize?: WindowSize
+  maxSize?: WindowSize
   zIndex: number
   isFocused: boolean
   /** Starting offset (px, both axes) from center, so new windows cascade rather than stack exactly. */
@@ -33,7 +43,7 @@ function offsetFor(left: number, top: number, width: number, height: number) {
   return { x: left + width / 2 - window.innerWidth / 2, y: top + height / 2 - window.innerHeight / 2 }
 }
 
-export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
+export function Window({ title, icon, openingWidth, minSize, maxSize, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
   const windowRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const dragSize = useRef({ width: 0, height: 0 })
@@ -44,6 +54,10 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
   const [isResizing, setIsResizing] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
   const { onPointerEnter: onCloseHoverEnter } = useHoverColor()
+  const minWidth = minSize?.width ?? MIN_WIDTH
+  const minHeight = minSize?.height ?? MIN_HEIGHT
+  // Once resized, the window drops its `openingWidth` cap but still honors the hard limit.
+  const resizedMaxWidth = maxSize?.width ? `${maxSize.width}px` : 'none'
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0 || isMaximized || !windowRef.current) return
@@ -105,10 +119,10 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
     e.currentTarget.setPointerCapture(e.pointerId)
     const rect = windowRef.current.getBoundingClientRect()
     resizeStart.current = { x: e.clientX, y: e.clientY, width: rect.width, height: rect.height, posX: pos.x, posY: pos.y }
-    // Drop the CSS max-width (driven by --window-max-width) up front — otherwise it still clamps the
+    // Drop the CSS max-width (driven by --window-opening-width) up front — otherwise it still clamps the
     // element during this very first drag, since the inline maxWidth:'none' override below only lands
     // once `size` state exists, which isn't until this drag's pointerup.
-    windowRef.current.style.maxWidth = 'none'
+    windowRef.current.style.maxWidth = resizedMaxWidth
     setIsResizing(true)
   }
 
@@ -116,10 +130,10 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
     if (!isResizing || !windowRef.current) return
     const start = resizeStart.current
     // The top-left corner stays put, so the window can grow only as far as the bottom-right of the viewport.
-    const maxWidthPx = window.innerWidth - (start.posX + window.innerWidth / 2 - start.width / 2)
-    const maxHeightPx = window.innerHeight - (start.posY + window.innerHeight / 2 - start.height / 2)
-    const nextWidth = clamp(start.width + (e.clientX - start.x), MIN_WIDTH, maxWidthPx)
-    const nextHeight = clamp(start.height + (e.clientY - start.y), MIN_HEIGHT, maxHeightPx)
+    const maxWidthPx = Math.min(window.innerWidth - (start.posX + window.innerWidth / 2 - start.width / 2), maxSize?.width ?? Infinity)
+    const maxHeightPx = Math.min(window.innerHeight - (start.posY + window.innerHeight / 2 - start.height / 2), maxSize?.height ?? Infinity)
+    const nextWidth = clamp(start.width + (e.clientX - start.x), minWidth, maxWidthPx)
+    const nextHeight = clamp(start.height + (e.clientY - start.y), minHeight, maxHeightPx)
     const nextX = start.posX + (nextWidth - start.width) / 2
     const nextY = start.posY + (nextHeight - start.height) / 2
     windowRef.current.style.width = `${nextWidth}px`
@@ -153,8 +167,14 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
           '--z': zIndex,
           '--x': `${pos.x}px`,
           '--y': `${pos.y}px`,
-          ...(maxWidth ? { '--window-max-width': typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth } : {}),
-          ...(size && !isMaximized ? { width: `${size.width}px`, height: `${size.height}px`, maxWidth: 'none' } : {}),
+          ...(openingWidth
+            ? { '--window-opening-width': typeof openingWidth === 'number' ? `${openingWidth}px` : openingWidth }
+            : {}),
+          '--window-min-width': `${minWidth}px`,
+          '--window-min-height': `${minHeight}px`,
+          ...(maxSize?.width ? { '--window-max-width-limit': `${maxSize.width}px` } : {}),
+          ...(maxSize?.height ? { '--window-max-height-limit': `${maxSize.height}px` } : {}),
+          ...(size && !isMaximized ? { width: `${size.width}px`, height: `${size.height}px`, maxWidth: resizedMaxWidth } : {}),
         } as React.CSSProperties
       }
     >

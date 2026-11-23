@@ -1,0 +1,81 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 380px;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+  container-type: inline-size;
+  /* Inline-size containment drops the content's own width, which would shrink the window to its
+     min-width; this stands in for it so the window still opens at its usual size. */
+  contain-intrinsic-inline-size: 576px;
+}
+
+.name {
+  margin-top: 0;
+  margin-bottom: 0.4em;
+  font-size: max(32px, 19.2cqi);
+}
+
+.log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log p {
+  margin: 0;
+  max-width: none;
+}
+
+.log .you {
+  margin-top: 10px;
+  color: var(--accent);
+}
+
+.act,
+.waiting {
+  font-style: oblique 10deg;
+  opacity: 0.6;
+}
+
+.prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--padding);
+  padding-top: var(--padding);
+  border-top: 1px solid var(--border);
+  color: var(--accent);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-variation-settings: inherit;
+}
+
+.input::placeholder {
+  color: var(--foreground);
+  opacity: 0.35;
+}
+
+.tab {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 12px;
+  opacity: 0.5;
+}

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { AppMessageType } from './messages'
-import { AboutApp } from './AboutApp'
+import type { WindowSize } from './Window'
+import { AboutApp } from './about/AboutApp'
 import { ProjectsApp } from './ProjectsApp'
 import { ContactApp } from './ContactApp'
 import { TypographyApp } from './TypographyApp'
@@ -21,24 +22,34 @@ export interface AppDefinition {
   icon?: string
   component?: ComponentType
   children?: AppDefinition[]
-  /** Overrides Window's default 600px cap, for apps too wide to fit it. A number is in px; a string is used as-is (e.g. a viewport-relative unit for apps that should grow freely). */
-  windowMaxWidth?: number | string
+  /** Widest the window opens at, overriding Window's default 600px, for apps too wide to fit it; narrower content opens narrower, and resizing can go past it. A number is in px; a string is used as-is (e.g. a viewport-relative unit). */
+  windowOpeningWidth?: number | string
+  /** Hard size limits for the window, enforced on open and while resizing (unlike `windowOpeningWidth`, which only applies on open). */
+  windowMinSize?: WindowSize
+  windowMaxSize?: WindowSize
   /** Message types this app can receive from other apps (see `messages.ts`); senders offer it as a target for these. */
   accepts?: AppMessageType[]
 }
 
 export const apps: AppDefinition[] = [
-  { id: 'about', label: 'About Me', icon: aboutMeIcon, component: AboutApp },
+  {
+    id: 'about',
+    label: 'About Me',
+    icon: aboutMeIcon,
+    component: AboutApp,
+    windowMinSize: { width: 400, height: 380 },
+    windowMaxSize: { width: 725, height: 800 },
+  },
   { id: 'projects', label: 'Projects', icon: documentIcon, component: ProjectsApp },
   { id: 'contact', label: 'Contact', icon: documentIcon, component: ContactApp },
   {
     id: 'tools',
     label: 'Tools',
     children: [
-      { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 760 },
-      { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
-      { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, windowMaxWidth: 760 },
-      { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, windowMaxWidth: 760, accepts: ['palette'] },
+      { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowOpeningWidth: 760 },
+      { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, windowOpeningWidth: '95vw' },
+      { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, windowOpeningWidth: 760 },
+      { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, windowOpeningWidth: 760, accepts: ['palette'] },
     ],
   },
   {
