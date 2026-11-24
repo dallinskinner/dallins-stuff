@@ -43,14 +43,19 @@ export function AppFrame({
   return (
     <div className={className ? `${styles.frame} ${className}` : styles.frame}>
       {top && <div className={styles.top}>{top}</div>}
-      <div className={styles.middle}>
+      <div className={styles.middle} data-no-top={top ? undefined : ''} data-no-bottom={bottom ? undefined : ''}>
         {left && (
           <div className={styles.left} style={leftWidth ? { width: leftWidth } : undefined}>
             {left}
           </div>
         )}
         <div className={styles.center}>
-          <div className={centerClassName ? `${styles.viewport} ${centerClassName}` : styles.viewport} ref={centerRef}>
+          <div
+            className={centerClassName ? `${styles.viewport} ${centerClassName}` : styles.viewport}
+            ref={centerRef}
+            data-left={left ? '' : undefined}
+            data-right={right ? '' : undefined}
+          >
             {children}
           </div>
           {overlay}

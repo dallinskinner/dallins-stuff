@@ -87,3 +87,27 @@
   align-items: safe center;
   justify-content: safe center;
 }
+
+/* Without a toolbar on an edge, the middle runs out through the window's padding to that edge so the side
+   panels' dividers reach it; the viewport's own padding (below) stands in for the padding it replaced. */
+.middle[data-no-top] {
+  margin-top: calc(-1 * var(--padding));
+}
+
+.middle[data-no-bottom] {
+  margin-bottom: calc(-1 * var(--padding));
+}
+
+/* Breathing room around the content: always above and below (under a toolbar's hairline, or standing in for the
+   window's padding), and beside a side panel; sides at the window's left/right edge already have its padding. */
+.viewport {
+  padding-block: var(--padding);
+}
+
+.viewport[data-left] {
+  padding-left: var(--padding);
+}
+
+.viewport[data-right] {
+  padding-right: var(--padding);
+}
