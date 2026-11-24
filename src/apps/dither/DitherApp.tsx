@@ -110,6 +110,15 @@ export function DitherApp() {
       const source = sourceRef.current
       if (!source) return
       const { element } = source
+      // A live source can change size mid-stream (e.g. a sketch re-run with a new canvas), so follow it.
+      if (source.kind === 'stream' && element instanceof HTMLVideoElement && element.videoWidth > 0) {
+        if (element.videoWidth !== source.width || element.videoHeight !== source.height) {
+          source.width = element.videoWidth
+          source.height = element.videoHeight
+          source.fit = Math.min(1, MAX_OUTPUT_SIDE / Math.max(source.width, source.height))
+          setSourceSize({ width: source.width, height: source.height, fit: source.fit })
+        }
+      }
       // Live streams can't be slowed, so only files take the speed setting.
       if (source.animation) source.animation.speed = speedRef.current
       else if (source.kind === 'file-video' && element instanceof HTMLVideoElement && element.playbackRate !== speedRef.current) {

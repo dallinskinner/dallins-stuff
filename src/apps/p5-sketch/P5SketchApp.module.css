@@ -1,0 +1,321 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding);
+}
+
+.app button,
+.app input,
+.app textarea {
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--padding);
+}
+
+.fileButton {
+  position: relative;
+  cursor: pointer;
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 14px;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.titleInput {
+  box-sizing: border-box;
+  width: 14ch;
+  padding: 0.4em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+}
+
+.message {
+  margin: 0;
+  color: var(--accent);
+}
+
+.workspace {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--padding);
+  align-items: flex-start;
+}
+
+.editor {
+  flex: 1 1 320px;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 420px;
+  padding: 0.6em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--content-background);
+  color: var(--foreground);
+  resize: vertical;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+
+.preview {
+  flex: 0 1 auto;
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--content-background);
+}
+
+.frame {
+  display: block;
+  width: var(--w, 400px);
+  height: var(--h, 400px);
+  border: none;
+}
+
+.console {
+  max-height: 140px;
+  margin: 0;
+  padding: 0.5em;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.console [data-level='error'] {
+  color: var(--accent);
+}
+
+.console [data-level='warn'] {
+  opacity: 0.8;
+}
+
+/* --- GUI mode --- */
+
+.tabs,
+.tools,
+.kinds {
+  display: flex;
+  gap: 4px;
+}
+
+.tabs button[data-active='true'],
+.kinds button[data-active='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--padding) / 2);
+  flex: 0 0 300px;
+  box-sizing: border-box;
+  max-width: 100%;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.panel p {
+  margin: 0;
+}
+
+.section {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  padding: 4px 8px;
+}
+
+.section summary {
+  cursor: pointer;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.shapeList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shapeList li {
+  display: flex;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) / 2);
+}
+
+.shapeList li[data-selected='true'] {
+  border-color: var(--accent);
+}
+
+.shapeName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.5em;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--color);
+}
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--padding) / 2);
+}
+
+.dial {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.dialHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 5.5em 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.slider select,
+.slider > .colorInput {
+  grid-column: 2 / -1;
+  justify-self: start;
+}
+
+.numberInput {
+  box-sizing: border-box;
+  width: 6ch;
+  padding: 0.2em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+}
+
+.sizeInputs {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.colorInput {
+  width: 36px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: none;
+  cursor: pointer;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.expression {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4em;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+  color: var(--foreground);
+}
+
+.dialHint,
+.dialError {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.dialError {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.previewWrap {
+  position: relative;
+  width: var(--w, 400px);
+  height: var(--h, 400px);
+}
+
+.codeColumn {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: calc(var(--padding) / 2);
+  min-width: 0;
+}
+
+.codeColumn .editor {
+  flex: none;
+  width: 100%;
+}
+
+/* Sits over the sketch so clicks pick and drag shapes instead of reaching the iframe. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}

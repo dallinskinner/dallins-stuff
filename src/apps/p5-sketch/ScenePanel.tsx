@@ -1,0 +1,138 @@
+import { DialEditor } from './DialEditor'
+import type { Driver, Scene, Shape, ShapeType } from './scene'
+import { MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, duplicateShape, propSpecs } from './scene'
+import { Slider } from './Slider'
+import styles from './P5SketchApp.module.css'
+
+const SHAPE_TYPES: ShapeType[] = ['circle', 'rect', 'line']
+
+interface ScenePanelProps {
+  scene: Scene
+  selectedId: number | null
+  onSelect: (id: number | null) => void
+  onScene: (update: (scene: Scene) => Scene) => void
+}
+
+export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelProps) {
+  const selected = scene.shapes.find((shape) => shape.id === selectedId) ?? null
+
+  const updateShape = (id: number, change: (shape: Shape) => Shape) =>
+    onScene((prev) => ({ ...prev, shapes: prev.shapes.map((shape) => (shape.id === id ? change(shape) : shape)) }))
+
+  const setProp = (shape: Shape, key: string, driver: Driver) =>
+    updateShape(shape.id, (current) => ({ ...current, props: { ...current.props, [key]: driver } }))
+
+  /** New shapes start in the middle of the canvas, ready to be dragged or dialed in. */
+  function add(type: ShapeType) {
+    const shape = createShape(type, scene.width / 2, scene.height / 2, scene.shapes)
+    onScene((prev) => ({ ...prev, shapes: [...prev.shapes, shape] }))
+    onSelect(shape.id)
+  }
+
+  function move(id: number, direction: -1 | 1) {
+    onScene((prev) => {
+      const index = prev.shapes.findIndex((shape) => shape.id === id)
+      const target = index + direction
+      if (index < 0 || target < 0 || target >= prev.shapes.length) return prev
+      const shapes = [...prev.shapes]
+      ;[shapes[index], shapes[target]] = [shapes[target], shapes[index]]
+      return { ...prev, shapes }
+    })
+  }
+
+  function duplicate(shape: Shape) {
+    const copy = duplicateShape(shape)
+    onScene((prev) => {
+      const index = prev.shapes.findIndex((s) => s.id === shape.id)
+      const shapes = [...prev.shapes]
+      shapes.splice(index + 1, 0, copy)
+      return { ...prev, shapes }
+    })
+    onSelect(copy.id)
+  }
+
+  function remove(id: number) {
+    onScene((prev) => ({ ...prev, shapes: prev.shapes.filter((shape) => shape.id !== id) }))
+    if (selectedId === id) onSelect(null)
+  }
+
+  const canvasSize = (key: 'width' | 'height', value: number) =>
+    onScene((prev) => ({ ...prev, [key]: Math.min(MAX_CANVAS, Math.max(MIN_CANVAS, Math.round(value))) }))
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.tools} role="group" aria-label="Add shape">
+        {SHAPE_TYPES.map((type) => (
+          <button key={type} type="button" onClick={() => add(type)}>
+            + {SHAPE_LABELS[type]}
+          </button>
+        ))}
+      </div>
+      <p className={styles.dialHint}>Click a shape on the canvas to select it, and drag to move it.</p>
+
+      <details className={styles.section}>
+        <summary>Canvas</summary>
+        <div className={styles.sectionBody}>
+          <label className={styles.slider}>
+            <span>Size</span>
+            <span className={styles.sizeInputs}>
+              <input type="number" className={styles.numberInput} min={MIN_CANVAS} max={MAX_CANVAS} value={scene.width} onChange={(e) => e.target.value !== '' && canvasSize('width', Number(e.target.value))} aria-label="Canvas width" />
+              ×
+              <input type="number" className={styles.numberInput} min={MIN_CANVAS} max={MAX_CANVAS} value={scene.height} onChange={(e) => e.target.value !== '' && canvasSize('height', Number(e.target.value))} aria-label="Canvas height" />
+            </span>
+          </label>
+          <label className={styles.slider}>
+            <span>Background</span>
+            <input type="color" className={styles.colorInput} value={scene.background} onChange={(e) => onScene((prev) => ({ ...prev, background: e.target.value }))} />
+          </label>
+          <Slider label="Loop (s)" value={scene.loop} min={1} max={30} step={0.5} onChange={(loop) => onScene((prev) => ({ ...prev, loop: Math.max(0.5, loop) }))} />
+        </div>
+      </details>
+
+      <ol className={styles.shapeList} aria-label="Shapes, bottom to top">
+        {[...scene.shapes].reverse().map((shape) => (
+          <li key={shape.id} data-selected={shape.id === selectedId}>
+            <button type="button" className={styles.shapeName} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
+              <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />
+              {shape.name}
+              {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
+            </button>
+            <button type="button" onClick={() => move(shape.id, 1)} aria-label={`Move ${shape.name} up`} title="Move up">
+              ↑
+            </button>
+            <button type="button" onClick={() => move(shape.id, -1)} aria-label={`Move ${shape.name} down`} title="Move down">
+              ↓
+            </button>
+            <button type="button" onClick={() => duplicate(shape)} aria-label={`Duplicate ${shape.name}`} title="Duplicate">
+              ⧉
+            </button>
+            <button type="button" onClick={() => remove(shape.id)} aria-label={`Delete ${shape.name}`} title="Delete">
+              ×
+            </button>
+          </li>
+        ))}
+        {scene.shapes.length === 0 && <li className={styles.dialHint}>No shapes yet. Add one with the buttons above.</li>}
+      </ol>
+
+      {selected && (
+        <div className={styles.inspector}>
+          <input className={styles.titleInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Shape name" />
+          <label className={styles.slider}>
+            <span>Color</span>
+            <input type="color" className={styles.colorInput} value={selected.color} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, color: e.target.value }))} />
+          </label>
+          {selected.type !== 'line' && (
+            <label className={styles.toggle}>
+              <input type="checkbox" checked={selected.outline} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, outline: e.target.checked }))} />
+              Outline only
+            </label>
+          )}
+          <Slider label="Copies" value={selected.repeat} min={1} max={32} step={1} onChange={(repeat) => updateShape(selected.id, (s) => ({ ...s, repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(repeat))) }))} />
+          {propSpecs(selected, scene).map((spec) => (
+            <DialEditor key={spec.key} spec={spec} driver={selected.props[spec.key]} repeat={selected.repeat} onChange={(driver) => setProp(selected, spec.key, driver)} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

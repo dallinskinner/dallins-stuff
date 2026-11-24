@@ -13,6 +13,7 @@
     "dialkit": "^2.0.2",
     "fast-simplex-noise": "^4.0.0",
     "motion": "^13.2.0",
+    "p5": "1.11.13",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",

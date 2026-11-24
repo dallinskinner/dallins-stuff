@@ -9,12 +9,14 @@ import { ScreenSavorApp } from './screen-savor/ScreenSavorApp'
 import { ImageToolsApp } from './image-tools/ImageToolsApp'
 import { ColorPaletteApp } from './color-palette/ColorPaletteApp'
 import { DitherApp } from './dither/DitherApp'
+import { P5SketchApp } from './p5-sketch/P5SketchApp'
 import aboutMeIcon from '../assets/icons/about-me.png'
 import pencilIcon from '../assets/icons/pencil.png'
 import documentIcon from '../assets/icons/document.png'
 import colorPaletteIcon from '../assets/icons/color-palette.png'
 import imageToolsIcon from '../assets/icons/image-tools.png'
 import gradientIcon from '../assets/icons/gradient.png'
+import curveIcon from '../assets/icons/curve.png'
 import screenFlavorIcon from '../assets/icons/screen-flavor.png'
 
 export interface AppDefinition {
@@ -42,6 +44,7 @@ export const apps: AppDefinition[] = [
       { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, windowMaxWidth: 760 },
       { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, windowMaxWidth: 760, accepts: ['palette'] },
       { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, windowMaxWidth: 760, accepts: ['frame-source', 'palette'] },
+      { id: 'p5-sketch', label: 'p5 Sketch', icon: curveIcon, component: P5SketchApp, windowMaxWidth: '90vw' },
     ],
   },
   {
