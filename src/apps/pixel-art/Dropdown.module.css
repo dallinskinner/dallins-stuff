@@ -14,9 +14,9 @@
   z-index: 2;
   min-width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
+  border: var(--ui-border-width) solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
 }
 
 .popover[data-align='right'] {
@@ -31,9 +31,15 @@
   white-space: nowrap;
 }
 
-.popover[data-variant='menu'] button {
+/* Menu items are flat rows, not bordered buttons. `.dropdown` is there to out-rank the standard button rules. */
+.dropdown .popover[data-variant='menu'] > button {
   width: 100%;
   border: none;
   border-radius: 0;
+  background-color: transparent;
   text-align: left;
+}
+
+.dropdown .popover[data-variant='menu'] > button:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--foreground) 12%, transparent);
 }

@@ -1,9 +1,9 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--padding);
   width: 180px;
-  padding: 6px;
+  padding: var(--padding);
 }
 
 .hint {
@@ -20,16 +20,6 @@
 }
 
 .swatch {
+  --swatch-h: 20px;
   width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.slider {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }

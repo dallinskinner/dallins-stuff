@@ -81,6 +81,7 @@ export function RecolorPanel({ grid, palette, selection, onBeginStroke, onPaintC
                   key={hex}
                   type="button"
                   className={styles.swatch}
+                  data-variant="swatch"
                   style={{ backgroundColor: hex }}
                   aria-label={hex}
                   onClick={() => startSession(hex)}
@@ -98,25 +99,33 @@ export function RecolorPanel({ grid, palette, selection, onBeginStroke, onPaintC
       <p className={styles.hint}>
         {session.cells.length} pixel{session.cells.length === 1 ? '' : 's'}
       </p>
-      <label className={styles.slider}>
-        L {session.l.toFixed(2)}
-        <input type="range" min={0} max={1} step={0.005} value={session.l} onChange={(e) => update({ l: Number(e.target.value) })} />
-      </label>
-      <label className={styles.slider}>
-        C {session.c.toFixed(3)}
-        <input
-          type="range"
-          min={0}
-          max={MAX_CHROMA}
-          step={0.002}
-          value={Math.min(session.c, MAX_CHROMA)}
-          onChange={(e) => update({ c: Number(e.target.value) })}
-        />
-      </label>
-      <label className={styles.slider}>
-        H {Math.round(session.h)}°
-        <input type="range" min={0} max={360} step={1} value={session.h} onChange={(e) => update({ h: Number(e.target.value) })} />
-      </label>
+      <div className="ui-fields">
+        <label className="ui-field">
+          <span className="ui-field-header">
+            L<output>{session.l.toFixed(2)}</output>
+          </span>
+          <input type="range" min={0} max={1} step={0.005} value={session.l} onChange={(e) => update({ l: Number(e.target.value) })} />
+        </label>
+        <label className="ui-field">
+          <span className="ui-field-header">
+            C<output>{session.c.toFixed(3)}</output>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={MAX_CHROMA}
+            step={0.002}
+            value={Math.min(session.c, MAX_CHROMA)}
+            onChange={(e) => update({ c: Number(e.target.value) })}
+          />
+        </label>
+        <label className="ui-field">
+          <span className="ui-field-header">
+            H<output>{Math.round(session.h)}°</output>
+          </span>
+          <input type="range" min={0} max={360} step={1} value={session.h} onChange={(e) => update({ h: Number(e.target.value) })} />
+        </label>
+      </div>
       <button type="button" onClick={() => setSession(null)}>
         Pick another
       </button>

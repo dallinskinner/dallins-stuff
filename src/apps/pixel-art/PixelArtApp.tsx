@@ -496,14 +496,14 @@ export function PixelArtApp() {
     <div className={styles.app}>
       <div className={styles.menuBar}>
         <div className={styles.historyButtons}>
-          <button type="button" onClick={undo} disabled={!canUndo} aria-label="Undo">
-            <span className={styles.historyIcon} style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
+          <button type="button" data-size="icon" onClick={undo} disabled={!canUndo} aria-label="Undo">
+            <span className="ui-icon" style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
           </button>
-          <button type="button" onClick={redo} disabled={!canRedo} aria-label="Redo">
-            <span className={styles.historyIcon} style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
+          <button type="button" data-size="icon" onClick={redo} disabled={!canRedo} aria-label="Redo">
+            <span className="ui-icon" style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
           </button>
-          <button type="button" onClick={clear} aria-label="Clear">
-            <span className={styles.historyIcon} style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
+          <button type="button" data-size="icon" onClick={clear} aria-label="Clear">
+            <span className="ui-icon" style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
           </button>
         </div>
         <span className={styles.menuSeparator} />
@@ -557,100 +557,100 @@ export function PixelArtApp() {
           <div className={styles.toolButtons}>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'select'}
               aria-label="Select"
               title="Select (Shift adds, Alt subtracts; drag inside to move)"
               onClick={() => setTool('select')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${selectIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${selectIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'wand'}
               aria-label="Flood select"
               title="Flood select (Shift adds, Alt subtracts)"
               onClick={() => setTool('wand')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${wandIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${wandIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'brush'}
               aria-label="Brush"
               onClick={() => setTool('brush')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${pencilIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${pencilIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'eraser'}
               aria-label="Eraser"
               onClick={() => setTool('eraser')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${eraserIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${eraserIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'ellipse'}
               aria-label="Ellipse"
               onClick={() => setTool('ellipse')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${circleIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${circleIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'rectangle'}
               aria-label="Rectangle"
               onClick={() => setTool('rectangle')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${squareIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${squareIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'line'}
               aria-label="Line"
               onClick={() => setTool('line')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${lineIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${lineIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'curve'}
               aria-label="Curve"
               onClick={() => setTool('curve')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${curveIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${curveIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'fill'}
               aria-label="Fill"
               onClick={() => setTool('fill')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${fillIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${fillIcon})` } as React.CSSProperties} />
             </button>
             <button
               type="button"
-              className={styles.toolButton}
+              data-variant="tool"
               aria-pressed={tool === 'gradient'}
               aria-label="Gradient"
               onClick={() => setTool('gradient')}
             >
-              <span className={styles.toolIcon} style={{ '--icon': `url(${gradientIcon})` } as React.CSSProperties} />
+              <span className="ui-icon" style={{ '--icon': `url(${gradientIcon})` } as React.CSSProperties} />
             </button>
           </div>
           {tool === 'gradient' && (
-            <label className={styles.ditherOption}>
-              Pattern
+            <label className={`ui-field ${styles.ditherOption}`}>
+              <span className="ui-field-header">Pattern</span>
               <select value={ditherPattern} onChange={(e) => setDitherPattern(e.target.value as DitherPattern)}>
                 <option value="bayer">Bayer</option>
                 <option value="lines">Lines</option>
@@ -660,8 +660,8 @@ export function PixelArtApp() {
             </label>
           )}
           {tool === 'gradient' && (
-            <label className={styles.ditherOption}>
-              Size
+            <label className={`ui-field ${styles.ditherOption}`}>
+              <span className="ui-field-header">Size</span>
               <select value={ditherSize} onChange={(e) => setDitherSize(Number(e.target.value))}>
                 <option value={2}>2×2</option>
                 <option value={4}>4×4</option>
@@ -748,6 +748,7 @@ export function PixelArtApp() {
                     key={hex}
                     type="button"
                     className={styles.paletteSwatch}
+                    data-variant="swatch"
                     style={{ backgroundColor: hex }}
                     aria-label={hex}
                     aria-pressed={hex.toLowerCase() === colorHex.toLowerCase()}
@@ -804,6 +805,7 @@ export function PixelArtApp() {
                   key={end}
                   type="button"
                   className={styles.clearToggle}
+                  data-size="sm"
                   aria-pressed={gradientClear[end]}
                   title={`Make the gradient's ${end} transparent`}
                   onClick={() => setGradientClear((clear) => ({ ...clear, [end]: !clear[end] }))}
@@ -834,8 +836,8 @@ export function PixelArtApp() {
             </Dropdown>
           )}
           <div className={styles.previewCorner}>
-            <label className={styles.zoomSlider}>
-              {previewShrunk ? 'Preview (fit)' : `Preview ${previewZoom}x`}
+            <label className="ui-field">
+              <span className="ui-field-header">{previewShrunk ? 'Preview (fit)' : `Preview ${previewZoom}x`}</span>
               <input
                 type="range"
                 disabled={previewShrunk}
@@ -874,7 +876,6 @@ export function PixelArtApp() {
         {isCustomSize && (
           <>
             <input
-              className={styles.sizeInput}
               type="number"
               aria-label="Canvas width"
               min={1}
@@ -884,7 +885,6 @@ export function PixelArtApp() {
             />
             ×
             <input
-              className={styles.sizeInput}
               type="number"
               aria-label="Canvas height"
               min={1}
@@ -894,11 +894,11 @@ export function PixelArtApp() {
             />
           </>
         )}
-        <label>
+        <label className="ui-check">
           <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
           Show Grid
         </label>
-        <label>
+        <label className="ui-check">
           <input type="checkbox" checked={showRulers} onChange={(e) => setShowRulers(e.target.checked)} />
           Rulers
         </label>
@@ -908,21 +908,24 @@ export function PixelArtApp() {
           </button>
           {referenceUrl && (
             <>
-              <label>
+              <label className="ui-check">
                 <input type="checkbox" checked={referenceVisible} onChange={(e) => setReferenceVisible(e.target.checked)} />
                 Show
               </label>
-              <input
-                type="range"
-                aria-label="Reference opacity"
-                min={0.05}
-                max={1}
-                step={0.05}
-                value={referenceOpacity}
-                disabled={!referenceVisible}
-                onChange={(e) => setReferenceOpacity(Number(e.target.value))}
-              />
-              <label>
+              <label className={`ui-field ${styles.compactField}`}>
+                <span className="ui-field-header">Opacity</span>
+                <input
+                  type="range"
+                  aria-label="Reference opacity"
+                  min={0.05}
+                  max={1}
+                  step={0.05}
+                  value={referenceOpacity}
+                  disabled={!referenceVisible}
+                  onChange={(e) => setReferenceOpacity(Number(e.target.value))}
+                />
+              </label>
+              <label className="ui-check">
                 <input
                   type="checkbox"
                   checked={referenceAdjusting}
@@ -931,22 +934,28 @@ export function PixelArtApp() {
                 />
                 Move
               </label>
-              <input
-                type="range"
-                aria-label="Reference size"
-                min={0.1}
-                max={4}
-                step={0.05}
-                value={referenceScale}
-                disabled={!referenceVisible}
-                onChange={(e) => setReferenceScale(Number(e.target.value))}
-              />
-              <span>{Math.round(referenceScale * 100)}%</span>
+              <label className={`ui-field ${styles.compactField}`}>
+                <span className="ui-field-header">
+                  Size
+                  <output>{Math.round(referenceScale * 100)}%</output>
+                </span>
+                <input
+                  type="range"
+                  aria-label="Reference size"
+                  min={0.1}
+                  max={4}
+                  step={0.05}
+                  value={referenceScale}
+                  disabled={!referenceVisible}
+                  onChange={(e) => setReferenceScale(Number(e.target.value))}
+                />
+              </label>
               <button type="button" onClick={resetReferenceTransform}>
                 Reset
               </button>
               <button
                 type="button"
+                data-size="icon"
                 aria-label="Remove reference"
                 onClick={() => {
                   setReferenceUrl(null)
@@ -966,11 +975,11 @@ export function PixelArtApp() {
           />
         </div>
         <div className={styles.canvasZoomControl}>
-          <button type="button" onClick={zoomOut} disabled={canvasZoom <= CANVAS_ZOOM_MIN} aria-label="Zoom out">
+          <button type="button" data-size="icon" onClick={zoomOut} disabled={canvasZoom <= CANVAS_ZOOM_MIN} aria-label="Zoom out">
             −
           </button>
           <span>Zoom {canvasZoom}x</span>
-          <button type="button" onClick={zoomIn} disabled={canvasZoom >= CANVAS_ZOOM_MAX} aria-label="Zoom in">
+          <button type="button" data-size="icon" onClick={zoomIn} disabled={canvasZoom >= CANVAS_ZOOM_MAX} aria-label="Zoom in">
             +
           </button>
         </div>

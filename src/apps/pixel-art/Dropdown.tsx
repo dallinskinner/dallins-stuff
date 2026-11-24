@@ -31,8 +31,8 @@ export function Dropdown({ label, children, variant = 'menu', align = 'left', fu
 
   return (
     <div className={styles.dropdown} data-full-width={fullWidth} ref={ref}>
-      <button type="button" className={styles.trigger} aria-expanded={open} disabled={disabled} onClick={() => setOpen((o) => !o)}>
-        {label} ▾
+      <button type="button" className={styles.trigger} data-chevron aria-expanded={open} disabled={disabled} onClick={() => setOpen((o) => !o)}>
+        {label}
       </button>
       {open && !disabled && (
         <div className={styles.popover} data-variant={variant} data-align={align} onClick={handleMenuClick}>

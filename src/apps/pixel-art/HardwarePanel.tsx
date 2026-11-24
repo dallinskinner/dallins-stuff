@@ -48,15 +48,15 @@ export function HardwarePanel({
           <span className={styles.tileCount} data-over={overBudget}>
             {tileLabel}
           </span>
-          <label>
+          <label className="ui-check">
             <input type="checkbox" checked={showTiles} onChange={(e) => onShowTilesChange(e.target.checked)} />
             Show tiles
           </label>
-          <label>
+          <label className="ui-check">
             <input type="checkbox" checked={showRegions} onChange={(e) => onShowRegionsChange(e.target.checked)} />
             Palette areas
           </label>
-          <label title="On: paints that would exceed the tile budget are refused. Off: you can go over it (the counter turns red).">
+          <label className="ui-check" title="On: paints that would exceed the tile budget are refused. Off: you can go over it (the counter turns red).">
             <input type="checkbox" checked={strict} onChange={(e) => onStrictChange(e.target.checked)} />
             Strict
           </label>

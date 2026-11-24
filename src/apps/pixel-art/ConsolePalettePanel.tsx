@@ -39,6 +39,7 @@ export function ConsolePalettePanel({ mode, palette, active, onSelect, secondary
             <button
               type="button"
               className={styles.swatch}
+              data-variant="swatch"
               style={hasBackdrop ? ({ '--color': palette.backdrop } as React.CSSProperties) : undefined}
               data-transparent={!hasBackdrop}
               aria-label={hasBackdrop ? `Palette ${sp + 1} backdrop` : `Palette ${sp + 1} transparent`}
@@ -55,6 +56,7 @@ export function ConsolePalettePanel({ mode, palette, active, onSelect, secondary
                 key={i}
                 type="button"
                 className={styles.swatch}
+                data-variant="swatch"
                 style={{ '--color': hex } as React.CSSProperties}
                 aria-label={`Palette ${sp + 1} color ${i + 1}: ${hex}`}
                 aria-pressed={active.sp === sp && active.slot === i + 1}
@@ -86,6 +88,7 @@ export function ConsolePalettePanel({ mode, palette, active, onSelect, secondary
                   key={i}
                   type="button"
                   className={styles.masterSwatch}
+                  data-variant="swatch"
                   style={{ '--color': hex } as React.CSSProperties}
                   aria-label={hex}
                   onClick={() => pick(hex)}

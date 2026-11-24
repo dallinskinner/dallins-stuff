@@ -9,30 +9,6 @@
 
 /* Mimics the browser's native button (same system colors and box metrics), with a ▾ drawn from two
    gradient half-squares since a select can't have a pseudo-element arrow. */
-.app select {
-  appearance: none;
-  padding: 1px 22px 1px 6px;
-  border: 2px solid transparent;
-  border-radius: 4px;
-  background-color: ButtonFace;
-  background-image:
-    linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position:
-    calc(100% - 12px) 50%,
-    calc(100% - 8px) 50%;
-  background-size: 4px 4px;
-  background-repeat: no-repeat;
-  color: ButtonText;
-  cursor: pointer;
-}
-
-/* GrayText nearly vanishes against ButtonFace in dark mode, so dim the normal text color instead. */
-.app select:disabled {
-  color: color-mix(in srgb, ButtonText 60%, transparent);
-  cursor: default;
-}
-
 .workspace {
   display: flex;
   width: 100%;
@@ -65,12 +41,6 @@
   gap: 4px;
 }
 
-.historyButtons button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .menuSeparator {
   align-self: stretch;
   width: 1px;
@@ -85,19 +55,6 @@
   flex-shrink: 0;
   padding: var(--padding) 0 var(--padding) var(--padding);
   border-left: 1px solid var(--border);
-}
-
-.historyIcon {
-  width: 16px;
-  height: 16px;
-  background-color: currentColor;
-  mask-image: var(--icon);
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-image: var(--icon);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  image-rendering: pixelated;
 }
 
 .bottomBar {
@@ -121,16 +78,9 @@
   background: var(--border);
 }
 
-.bottomBar label {
-  display: flex;
-  align-items: center;
-  gap: 0.4em;
-}
-
 .toolPanel {
   display: flex;
   flex-direction: column;
-  width: 48px;
   flex-shrink: 0;
   padding: var(--padding) var(--padding) var(--padding) 0;
   border-right: 1px solid var(--border);
@@ -138,47 +88,23 @@
 
 .toolButtons {
   display: grid;
-  grid-template-columns: repeat(2, 24px);
-}
-
-.toolButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
-}
-
-.toolButton[aria-pressed='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.toolIcon {
-  width: 16px;
-  height: 16px;
-  background-color: currentColor;
-  mask-image: var(--icon);
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-image: var(--icon);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  image-rendering: pixelated;
+  grid-template-columns: repeat(2, var(--ui-height));
+  gap: 4px;
 }
 
 .ditherOption {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: var(--padding);
+}
+
+.ditherOption select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+/* A slider squeezed into the bottom bar, beside the other reference controls. */
+.compactField {
+  width: 110px;
 }
 
 /* Only the palette scrolls, so the Recolor popover below it isn't clipped. */
@@ -213,19 +139,6 @@
 .clearToggle {
   flex: 1;
   min-width: 0;
-  padding: 1px 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 12px;
-}
-
-.clearToggle[aria-pressed='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
 }
 
 .paletteGrid {
@@ -236,30 +149,14 @@
 
 .paletteSwatch {
   aspect-ratio: 1;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  cursor: pointer;
-}
-
-/* Inset rather than offset, so the scrolling grid doesn't clip the ring. */
-.paletteSwatch[aria-pressed='true'] {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
 }
 
 .fileNameInput {
-  box-sizing: border-box;
   width: 10em;
   margin-left: auto;
-  padding: 0.4em;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
 }
 
-.hiddenColorInput,
+.app input.hiddenColorInput,
 .hiddenFileInput {
   position: absolute;
   width: 0;
@@ -281,18 +178,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
-}
-
-.zoomSlider {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.zoomSlider input[type='range'] {
-  width: 100%;
-  accent-color: var(--accent);
+  gap: var(--ui-label-gap);
 }
 
 /* Positions the floating hardware panel over the viewport without scrolling along with it. */
@@ -323,24 +209,6 @@
   margin-left: auto;
 }
 
-.canvasZoomControl button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
-}
-
-.canvasZoomControl button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
 .canvasZoomControl span {
   min-width: 4.5em;
   text-align: center;
@@ -352,11 +220,3 @@
   gap: 4px;
 }
 
-.referenceControl input[type='range'] {
-  width: 80px;
-  accent-color: var(--accent);
-}
-
-.sizeInput {
-  width: 5em;
-}
