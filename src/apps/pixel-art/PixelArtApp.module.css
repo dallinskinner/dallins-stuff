@@ -1,39 +1,8 @@
 .app {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  height: 100%;
   font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
   font-size: 14px;
-}
-
-/* Mimics the browser's native button (same system colors and box metrics), with a ▾ drawn from two
-   gradient half-squares since a select can't have a pseudo-element arrow. */
-.workspace {
-  display: flex;
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-}
-
-.menuBar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--padding);
-  width: 100%;
-  box-sizing: border-box;
-  padding-bottom: var(--padding);
-}
-
-.menuBar::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: calc(-1 * var(--padding));
-  right: calc(-1 * var(--padding));
-  height: 1px;
-  background: var(--border);
 }
 
 .historyButtons {
@@ -45,45 +14,6 @@
   align-self: stretch;
   width: 1px;
   background: var(--border);
-}
-
-.colorPanel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--padding);
-  width: 128px;
-  flex-shrink: 0;
-  padding: var(--padding) 0 var(--padding) var(--padding);
-  border-left: 1px solid var(--border);
-}
-
-.bottomBar {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--padding);
-  width: 100%;
-  box-sizing: border-box;
-  padding-top: var(--padding);
-}
-
-.bottomBar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: calc(-1 * var(--padding));
-  right: calc(-1 * var(--padding));
-  height: 1px;
-  background: var(--border);
-}
-
-.toolPanel {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  padding: var(--padding) var(--padding) var(--padding) 0;
-  border-right: 1px solid var(--border);
 }
 
 .toolButtons {
@@ -181,25 +111,9 @@
   gap: var(--ui-label-gap);
 }
 
-/* Positions the floating hardware panel over the viewport without scrolling along with it. */
-.canvasArea {
-  position: relative;
-  display: flex;
-  flex: 1;
-  min-width: 240px;
-  min-height: 0;
-}
-
-/* Taken out of flow so the canvas's zoomed size never feeds into the window's auto size; zooming only scrolls this area. */
+/* The frame's viewport scrolls; this only keeps iPadOS from page-zooming on a pinch (the app zooms the canvas itself). */
 .canvasViewport {
-  position: absolute;
-  inset: 0;
-  overflow: auto;
-  /* Keeps iPadOS from page-zooming on a pinch; the app zooms the canvas itself. */
   touch-action: pan-x pan-y;
-  display: flex;
-  align-items: safe center;
-  justify-content: safe center;
 }
 
 .canvasZoomControl {

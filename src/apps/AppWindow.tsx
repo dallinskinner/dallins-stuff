@@ -28,6 +28,7 @@ export function AppWindow({ path, zIndex, cascadeIndex }: AppWindowProps) {
       title={node.label}
       icon={node.icon ?? (node.children ? folderOpenIcon : undefined)}
       maxWidth={node.windowMaxWidth}
+      defaultSize={node.defaultSize}
       zIndex={zIndex}
       isFocused={isFocused}
       initialOffset={(cascadeIndex % CASCADE_STEPS) * CASCADE_STEP}

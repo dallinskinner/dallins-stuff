@@ -1,0 +1,89 @@
+/* Fills the window's content area. The window supplies the outer padding; the hairlines below run out
+   across it to the window edge, so toolbars read as bars rather than floating rows. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.top,
+.bottom {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--padding);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.top {
+  padding-bottom: var(--padding);
+}
+
+.bottom {
+  padding-top: var(--padding);
+}
+
+.top::after,
+.bottom::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--padding));
+  right: calc(-1 * var(--padding));
+  height: 1px;
+  background: var(--border);
+}
+
+.top::after {
+  bottom: 0;
+}
+
+.bottom::before {
+  top: 0;
+}
+
+.middle {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.left {
+  padding: var(--padding) var(--padding) var(--padding) 0;
+  border-right: 1px solid var(--border);
+}
+
+.right {
+  gap: var(--padding);
+  padding: var(--padding) 0 var(--padding) var(--padding);
+  border-left: 1px solid var(--border);
+}
+
+/* Positions overlays over the viewport without scrolling along with it. */
+.center {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 240px;
+  min-height: 0;
+}
+
+/* Taken out of flow so the content's size never feeds into the window's auto size; oversized content just scrolls. */
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  align-items: safe center;
+  justify-content: safe center;
+}

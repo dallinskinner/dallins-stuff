@@ -8,6 +8,8 @@ interface WindowProps {
   /** Mask-style icon shown before the title. */
   icon?: string
   maxWidth?: number | string
+  /** Starting size (px). Without it the window sizes to its content until the user resizes it. */
+  defaultSize?: { width: number; height: number }
   zIndex: number
   isFocused: boolean
   /** Starting offset (px, both axes) from center, so new windows cascade rather than stack exactly. */
@@ -33,13 +35,17 @@ function offsetFor(left: number, top: number, width: number, height: number) {
   return { x: left + width / 2 - window.innerWidth / 2, y: top + height / 2 - window.innerHeight / 2 }
 }
 
-export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
+export function Window({ title, icon, maxWidth, defaultSize, zIndex, isFocused, initialOffset = 0, onFocus, onClose, children }: WindowProps) {
   const windowRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const dragSize = useRef({ width: 0, height: 0 })
   const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0, posX: 0, posY: 0 })
   const [pos, setPos] = useState({ x: initialOffset, y: initialOffset })
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  const [size, setSize] = useState<{ width: number; height: number } | null>(() =>
+    defaultSize
+      ? { width: Math.min(defaultSize.width, window.innerWidth), height: Math.min(defaultSize.height, window.innerHeight) }
+      : null,
+  )
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)

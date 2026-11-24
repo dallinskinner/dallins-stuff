@@ -19,6 +19,7 @@ import { PixelPreview } from './PixelPreview'
 import { RecolorPanel } from './RecolorPanel'
 import { ConsolePalettePanel } from './ConsolePalettePanel'
 import { Dropdown } from './Dropdown'
+import { AppFrame } from '../AppFrame'
 import { HardwarePanel } from './HardwarePanel'
 import { useMessageTargets, useWindowFocus } from '../../desktop/WindowManager'
 import type { Selection } from './selection'
@@ -493,497 +494,506 @@ export function PixelArtApp() {
   }
 
   return (
-    <div className={styles.app}>
-      <div className={styles.menuBar}>
-        <div className={styles.historyButtons}>
-          <button type="button" data-size="icon" onClick={undo} disabled={!canUndo} aria-label="Undo">
-            <span className="ui-icon" style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
-          </button>
-          <button type="button" data-size="icon" onClick={redo} disabled={!canRedo} aria-label="Redo">
-            <span className="ui-icon" style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
-          </button>
-          <button type="button" data-size="icon" onClick={clear} aria-label="Clear">
-            <span className="ui-icon" style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
-          </button>
-        </div>
-        <span className={styles.menuSeparator} />
-        <Dropdown label="File">
-          <button type="button" onClick={() => fileInputRef.current?.click()}>
-            Load PNG…
-          </button>
-          <button type="button" onClick={handleSave}>
-            Save PNG
-          </button>
-          <button type="button" onClick={() => projectInputRef.current?.click()}>
-            Open project…
-          </button>
-          <button type="button" onClick={handleProjectSave}>
-            Save project
-          </button>
-        </Dropdown>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/png"
-          onChange={handleLoad}
-          className={styles.hiddenFileInput}
-        />
-        <input
-          ref={projectInputRef}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleProjectLoad}
-          className={styles.hiddenFileInput}
-        />
-        <Dropdown label="Image">
-          <button type="button" onClick={handleFlipHorizontal}>
-            Flip horizontal
-          </button>
-          <button type="button" onClick={handleFlipVertical}>
-            Flip vertical
-          </button>
-        </Dropdown>
-        <input
-          type="text"
-          value={fileName}
-          onChange={(e) => setFileName(e.target.value)}
-          placeholder="pixel-art"
-          aria-label="File name"
-          className={styles.fileNameInput}
-        />
-      </div>
-      <div className={styles.workspace}>
-        <div className={styles.toolPanel}>
-          <div className={styles.toolButtons}>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'select'}
-              aria-label="Select"
-              title="Select (Shift adds, Alt subtracts; drag inside to move)"
-              onClick={() => setTool('select')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${selectIcon})` } as React.CSSProperties} />
+    <AppFrame
+      className={styles.app}
+      centerRef={canvasViewportRef}
+      centerClassName={styles.canvasViewport}
+      rightWidth="128px"
+      top={
+        <>
+          <div className={styles.historyButtons}>
+            <button type="button" data-size="icon" onClick={undo} disabled={!canUndo} aria-label="Undo">
+              <span className="ui-icon" style={{ '--icon': `url(${undoIcon})` } as React.CSSProperties} />
             </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'wand'}
-              aria-label="Flood select"
-              title="Flood select (Shift adds, Alt subtracts)"
-              onClick={() => setTool('wand')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${wandIcon})` } as React.CSSProperties} />
+            <button type="button" data-size="icon" onClick={redo} disabled={!canRedo} aria-label="Redo">
+              <span className="ui-icon" style={{ '--icon': `url(${redoIcon})` } as React.CSSProperties} />
             </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'brush'}
-              aria-label="Brush"
-              onClick={() => setTool('brush')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${pencilIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'eraser'}
-              aria-label="Eraser"
-              onClick={() => setTool('eraser')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${eraserIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'ellipse'}
-              aria-label="Ellipse"
-              onClick={() => setTool('ellipse')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${circleIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'rectangle'}
-              aria-label="Rectangle"
-              onClick={() => setTool('rectangle')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${squareIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'line'}
-              aria-label="Line"
-              onClick={() => setTool('line')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${lineIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'curve'}
-              aria-label="Curve"
-              onClick={() => setTool('curve')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${curveIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'fill'}
-              aria-label="Fill"
-              onClick={() => setTool('fill')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${fillIcon})` } as React.CSSProperties} />
-            </button>
-            <button
-              type="button"
-              data-variant="tool"
-              aria-pressed={tool === 'gradient'}
-              aria-label="Gradient"
-              onClick={() => setTool('gradient')}
-            >
-              <span className="ui-icon" style={{ '--icon': `url(${gradientIcon})` } as React.CSSProperties} />
+            <button type="button" data-size="icon" onClick={clear} aria-label="Clear">
+              <span className="ui-icon" style={{ '--icon': `url(${trashIcon})` } as React.CSSProperties} />
             </button>
           </div>
-          {tool === 'gradient' && (
-            <label className={`ui-field ${styles.ditherOption}`}>
-              <span className="ui-field-header">Pattern</span>
-              <select value={ditherPattern} onChange={(e) => setDitherPattern(e.target.value as DitherPattern)}>
-                <option value="bayer">Bayer</option>
-                <option value="lines">Lines</option>
-                <option value="diagonal">Diagonal</option>
-                <option value="dots">Dots</option>
-              </select>
-            </label>
-          )}
-          {tool === 'gradient' && (
-            <label className={`ui-field ${styles.ditherOption}`}>
-              <span className="ui-field-header">Size</span>
-              <select value={ditherSize} onChange={(e) => setDitherSize(Number(e.target.value))}>
-                <option value={2}>2×2</option>
-                <option value={4}>4×4</option>
-                <option value={8}>8×8</option>
-                <option value={16}>16×16</option>
-              </select>
-            </label>
-          )}
+          <span className={styles.menuSeparator} />
+          <Dropdown label="File">
+            <button type="button" onClick={() => fileInputRef.current?.click()}>
+              Load PNG…
+            </button>
+            <button type="button" onClick={handleSave}>
+              Save PNG
+            </button>
+            <button type="button" onClick={() => projectInputRef.current?.click()}>
+              Open project…
+            </button>
+            <button type="button" onClick={handleProjectSave}>
+              Save project
+            </button>
+          </Dropdown>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png"
+            onChange={handleLoad}
+            className={styles.hiddenFileInput}
+          />
+          <input
+            ref={projectInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleProjectLoad}
+            className={styles.hiddenFileInput}
+          />
+          <Dropdown label="Image">
+            <button type="button" onClick={handleFlipHorizontal}>
+              Flip horizontal
+            </button>
+            <button type="button" onClick={handleFlipVertical}>
+              Flip vertical
+            </button>
+          </Dropdown>
+          <input
+            type="text"
+            value={fileName}
+            onChange={(e) => setFileName(e.target.value)}
+            placeholder="pixel-art"
+            aria-label="File name"
+            className={styles.fileNameInput}
+          />
+        </>
+      }
+      left={
+        <>
+        <div className={styles.toolButtons}>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'select'}
+            aria-label="Select"
+            title="Select (Shift adds, Alt subtracts; drag inside to move)"
+            onClick={() => setTool('select')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${selectIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'wand'}
+            aria-label="Flood select"
+            title="Flood select (Shift adds, Alt subtracts)"
+            onClick={() => setTool('wand')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${wandIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'brush'}
+            aria-label="Brush"
+            onClick={() => setTool('brush')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${pencilIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'eraser'}
+            aria-label="Eraser"
+            onClick={() => setTool('eraser')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${eraserIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'ellipse'}
+            aria-label="Ellipse"
+            onClick={() => setTool('ellipse')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${circleIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'rectangle'}
+            aria-label="Rectangle"
+            onClick={() => setTool('rectangle')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${squareIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'line'}
+            aria-label="Line"
+            onClick={() => setTool('line')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${lineIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'curve'}
+            aria-label="Curve"
+            onClick={() => setTool('curve')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${curveIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'fill'}
+            aria-label="Fill"
+            onClick={() => setTool('fill')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${fillIcon})` } as React.CSSProperties} />
+          </button>
+          <button
+            type="button"
+            data-variant="tool"
+            aria-pressed={tool === 'gradient'}
+            aria-label="Gradient"
+            onClick={() => setTool('gradient')}
+          >
+            <span className="ui-icon" style={{ '--icon': `url(${gradientIcon})` } as React.CSSProperties} />
+          </button>
         </div>
-        <div className={styles.canvasArea}>
-          <div className={styles.canvasViewport} ref={canvasViewportRef}>
-            <CanvasRulers width={width} height={height} cellSize={cellSize} enabled={showRulers}>
-              <PixelCanvas
-                ref={canvasRef}
-                grid={grid}
-                width={width}
-                height={height}
-                cellSize={cellSize}
-                tool={tool}
-                color={tool === 'gradient' && !constrained && gradientClear.start ? TRANSPARENT : paintColor}
-                secondaryColor={secondaryColor}
-                ditherPattern={ditherPattern}
-                ditherSize={ditherSize}
-                showGrid={showGrid}
-                backdrop={backdrop}
-                reference={
-                  referenceUrl && referenceVisible
-                    ? {
-                        url: referenceUrl,
-                        opacity: referenceOpacity,
-                        x: referenceOffset.x,
-                        y: referenceOffset.y,
-                        scale: referenceScale,
-                        adjusting: referenceAdjusting,
-                        onMove: (x, y) => setReferenceOffset({ x, y }),
-                      }
-                    : undefined
-                }
-                hardware={
-                  constrained
-                    ? { regionSize: mode.regionSize, owners, showTiles, showRegions, rejection }
-                    : undefined
-                }
-                onBeginStroke={beginStroke}
-                onCancelStroke={undo}
-                onPaintCell={paintCell}
-                onPaintCells={paintCells}
-                selection={selection}
-                onSelectionChange={setSelection}
-              />
-            </CanvasRulers>
-          </div>
+        {tool === 'gradient' && (
+          <label className={`ui-field ${styles.ditherOption}`}>
+            <span className="ui-field-header">Pattern</span>
+            <select value={ditherPattern} onChange={(e) => setDitherPattern(e.target.value as DitherPattern)}>
+              <option value="bayer">Bayer</option>
+              <option value="lines">Lines</option>
+              <option value="diagonal">Diagonal</option>
+              <option value="dots">Dots</option>
+            </select>
+          </label>
+        )}
+        {tool === 'gradient' && (
+          <label className={`ui-field ${styles.ditherOption}`}>
+            <span className="ui-field-header">Size</span>
+            <select value={ditherSize} onChange={(e) => setDitherSize(Number(e.target.value))}>
+              <option value={2}>2×2</option>
+              <option value={4}>4×4</option>
+              <option value={8}>8×8</option>
+              <option value={16}>16×16</option>
+            </select>
+          </label>
+        )}
+        </>
+      }
+      right={
+        <>
+        <div className={styles.colorArea}>
           {constrained && (
-            <HardwarePanel
-              title={mode.label}
-              showTiles={showTiles}
-              onShowTilesChange={setShowTiles}
-              showRegions={showRegions}
-              onShowRegionsChange={setShowRegions}
-              strict={strict}
-              onStrictChange={setStrict}
-              uniqueTiles={uniqueTiles}
-              maxUniqueTiles={mode.maxUniqueTiles}
+            <ConsolePalettePanel
+              mode={mode}
+              palette={modePalette}
+              active={active}
+              onSelect={setActive}
+              secondarySlot={secondarySlot}
+              onSelectSecondary={setSecondarySlot}
+              onEditEntry={handleEditEntry}
             />
           )}
+          {!constrained && palette.length > 0 && (
+            <div className={styles.paletteGrid} aria-label="Colors used in this artwork">
+              {palette.map((hex) => (
+                <button
+                  key={hex}
+                  type="button"
+                  className={styles.paletteSwatch}
+                  data-variant="swatch"
+                  style={{ backgroundColor: hex }}
+                  aria-label={hex}
+                  aria-pressed={hex.toLowerCase() === colorHex.toLowerCase()}
+                  onClick={() => setColorHex(hex)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        <div className={styles.colorPanel}>
-          <div className={styles.colorArea}>
-            {constrained && (
-              <ConsolePalettePanel
-                mode={mode}
-                palette={modePalette}
-                active={active}
-                onSelect={setActive}
-                secondarySlot={secondarySlot}
-                onSelectSecondary={setSecondarySlot}
-                onEditEntry={handleEditEntry}
+        <div className={styles.colorRow}>
+          <label
+            className={styles.activeColor}
+            style={paintHex && !gradientStartClear ? { backgroundColor: paintHex } : undefined}
+            data-transparent={!paintHex || gradientStartClear}
+            aria-label="Active color"
+          >
+            {!constrained && (
+              <input
+                type="color"
+                value={colorHex}
+                onChange={(e) => {
+                  setColorHex(e.target.value)
+                  setGradientClear((clear) => ({ ...clear, start: false }))
+                }}
+                className={styles.hiddenColorInput}
               />
             )}
-            {!constrained && palette.length > 0 && (
-              <div className={styles.paletteGrid} aria-label="Colors used in this artwork">
-                {palette.map((hex) => (
-                  <button
-                    key={hex}
-                    type="button"
-                    className={styles.paletteSwatch}
-                    data-variant="swatch"
-                    style={{ backgroundColor: hex }}
-                    aria-label={hex}
-                    aria-pressed={hex.toLowerCase() === colorHex.toLowerCase()}
-                    onClick={() => setColorHex(hex)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <div className={styles.colorRow}>
+          </label>
+          {tool === 'gradient' && (
             <label
               className={styles.activeColor}
-              style={paintHex && !gradientStartClear ? { backgroundColor: paintHex } : undefined}
-              data-transparent={!paintHex || gradientStartClear}
-              aria-label="Active color"
+              style={secondaryDisplayHex ? { backgroundColor: secondaryDisplayHex } : undefined}
+              data-transparent={!secondaryDisplayHex}
+              aria-label="Secondary color"
             >
               {!constrained && (
                 <input
                   type="color"
-                  value={colorHex}
+                  value={secondaryHex}
                   onChange={(e) => {
-                    setColorHex(e.target.value)
-                    setGradientClear((clear) => ({ ...clear, start: false }))
+                    setSecondaryHex(e.target.value)
+                    setGradientClear((clear) => ({ ...clear, end: false }))
                   }}
                   className={styles.hiddenColorInput}
                 />
               )}
             </label>
-            {tool === 'gradient' && (
-              <label
-                className={styles.activeColor}
-                style={secondaryDisplayHex ? { backgroundColor: secondaryDisplayHex } : undefined}
-                data-transparent={!secondaryDisplayHex}
-                aria-label="Secondary color"
-              >
-                {!constrained && (
-                  <input
-                    type="color"
-                    value={secondaryHex}
-                    onChange={(e) => {
-                      setSecondaryHex(e.target.value)
-                      setGradientClear((clear) => ({ ...clear, end: false }))
-                    }}
-                    className={styles.hiddenColorInput}
-                  />
-                )}
-              </label>
-            )}
-          </div>
-          {tool === 'gradient' && !constrained && (
-            <div className={styles.colorRow}>
-              {(['start', 'end'] as const).map((end) => (
-                <button
-                  key={end}
-                  type="button"
-                  className={styles.clearToggle}
-                  data-size="sm"
-                  aria-pressed={gradientClear[end]}
-                  title={`Make the gradient's ${end} transparent`}
-                  onClick={() => setGradientClear((clear) => ({ ...clear, [end]: !clear[end] }))}
-                >
-                  Clear
-                </button>
-              ))}
-            </div>
           )}
-          {!constrained && (
-            <Dropdown label="Recolor" variant="panel" align="right" fullWidth>
-              <RecolorPanel
-                grid={grid}
-                palette={recolorPalette}
-                selection={selection}
-                onBeginStroke={beginStroke}
-                onPaintCells={paintCells}
-              />
-            </Dropdown>
-          )}
-          {paletteTargets.length > 0 && (
-            <Dropdown label="Send to" fullWidth disabled={palette.length === 0 && !backdrop}>
-              {paletteTargets.map((target) => (
-                <button key={target.path} type="button" onClick={() => sendPalette(target.send)}>
-                  {target.label}
-                </button>
-              ))}
-            </Dropdown>
-          )}
-          <div className={styles.previewCorner}>
-            <label className="ui-field">
-              <span className="ui-field-header">{previewShrunk ? 'Preview (fit)' : `Preview ${previewZoom}x`}</span>
-              <input
-                type="range"
-                disabled={previewShrunk}
-                min={PREVIEW_ZOOM_MIN}
-                max={previewZoomMax}
-                step={1}
-                value={previewZoom}
-                onChange={(e) => setPreviewZoom(Number(e.target.value))}
-              />
-            </label>
-            <PixelPreview grid={grid} width={width} height={height} zoom={previewShrunk ? previewFitScale : previewZoom} maxSize={MAX_PREVIEW} backdrop={backdrop} />
-          </div>
         </div>
-      </div>
-      <div className={styles.bottomBar}>
-        <select aria-label="Console" value={mode.id} onChange={handleModeChange}>
-          {MODES.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Size"
-          value={isCustomSize ? CUSTOM_SIZE_ID : activePreset}
-          onChange={handleSizeChange}
-          disabled={mode.sizes.length < 2}
-        >
-          {mode.sizes.map((preset) => (
-            <option key={preset.id} value={preset.id}>
-              {preset.label}
-            </option>
-          ))}
-          {!constrained && <option value={CUSTOM_SIZE_ID}>Custom…</option>}
-        </select>
-        {isCustomSize && (
-          <>
-            <input
-              type="number"
-              aria-label="Canvas width"
-              min={1}
-              max={CUSTOM_SIZE_MAX}
-              defaultValue={width}
-              onChange={(e) => handleCustomDimension('width', e.target.value)}
-            />
-            ×
-            <input
-              type="number"
-              aria-label="Canvas height"
-              min={1}
-              max={CUSTOM_SIZE_MAX}
-              defaultValue={height}
-              onChange={(e) => handleCustomDimension('height', e.target.value)}
-            />
-          </>
-        )}
-        <label className="ui-check">
-          <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
-          Show Grid
-        </label>
-        <label className="ui-check">
-          <input type="checkbox" checked={showRulers} onChange={(e) => setShowRulers(e.target.checked)} />
-          Rulers
-        </label>
-        <div className={styles.referenceControl}>
-          <button type="button" onClick={() => referenceInputRef.current?.click()}>
-            {referenceUrl ? 'Change reference' : 'Reference…'}
-          </button>
-          {referenceUrl && (
-            <>
-              <label className="ui-check">
-                <input type="checkbox" checked={referenceVisible} onChange={(e) => setReferenceVisible(e.target.checked)} />
-                Show
-              </label>
-              <label className={`ui-field ${styles.compactField}`}>
-                <span className="ui-field-header">Opacity</span>
-                <input
-                  type="range"
-                  aria-label="Reference opacity"
-                  min={0.05}
-                  max={1}
-                  step={0.05}
-                  value={referenceOpacity}
-                  disabled={!referenceVisible}
-                  onChange={(e) => setReferenceOpacity(Number(e.target.value))}
-                />
-              </label>
-              <label className="ui-check">
-                <input
-                  type="checkbox"
-                  checked={referenceAdjusting}
-                  disabled={!referenceVisible}
-                  onChange={(e) => setReferenceAdjusting(e.target.checked)}
-                />
-                Move
-              </label>
-              <label className={`ui-field ${styles.compactField}`}>
-                <span className="ui-field-header">
-                  Size
-                  <output>{Math.round(referenceScale * 100)}%</output>
-                </span>
-                <input
-                  type="range"
-                  aria-label="Reference size"
-                  min={0.1}
-                  max={4}
-                  step={0.05}
-                  value={referenceScale}
-                  disabled={!referenceVisible}
-                  onChange={(e) => setReferenceScale(Number(e.target.value))}
-                />
-              </label>
-              <button type="button" onClick={resetReferenceTransform}>
-                Reset
-              </button>
+        {tool === 'gradient' && !constrained && (
+          <div className={styles.colorRow}>
+            {(['start', 'end'] as const).map((end) => (
               <button
+                key={end}
                 type="button"
-                data-size="icon"
-                aria-label="Remove reference"
-                onClick={() => {
-                  setReferenceUrl(null)
-                  setReferenceAdjusting(false)
-                }}
+                className={styles.clearToggle}
+                data-size="sm"
+                aria-pressed={gradientClear[end]}
+                title={`Make the gradient's ${end} transparent`}
+                onClick={() => setGradientClear((clear) => ({ ...clear, [end]: !clear[end] }))}
               >
-                ✕
+                Clear
               </button>
+            ))}
+          </div>
+        )}
+        {!constrained && (
+          <Dropdown label="Recolor" variant="panel" align="right" fullWidth>
+            <RecolorPanel
+              grid={grid}
+              palette={recolorPalette}
+              selection={selection}
+              onBeginStroke={beginStroke}
+              onPaintCells={paintCells}
+            />
+          </Dropdown>
+        )}
+        {paletteTargets.length > 0 && (
+          <Dropdown label="Send to" fullWidth disabled={palette.length === 0 && !backdrop}>
+            {paletteTargets.map((target) => (
+              <button key={target.path} type="button" onClick={() => sendPalette(target.send)}>
+                {target.label}
+              </button>
+            ))}
+          </Dropdown>
+        )}
+        <div className={styles.previewCorner}>
+          <label className="ui-field">
+            <span className="ui-field-header">{previewShrunk ? 'Preview (fit)' : `Preview ${previewZoom}x`}</span>
+            <input
+              type="range"
+              disabled={previewShrunk}
+              min={PREVIEW_ZOOM_MIN}
+              max={previewZoomMax}
+              step={1}
+              value={previewZoom}
+              onChange={(e) => setPreviewZoom(Number(e.target.value))}
+            />
+          </label>
+          <PixelPreview grid={grid} width={width} height={height} zoom={previewShrunk ? previewFitScale : previewZoom} maxSize={MAX_PREVIEW} backdrop={backdrop} />
+        </div>
+        </>
+      }
+      overlay={
+        constrained && (
+          <HardwarePanel
+            title={mode.label}
+            showTiles={showTiles}
+            onShowTilesChange={setShowTiles}
+            showRegions={showRegions}
+            onShowRegionsChange={setShowRegions}
+            strict={strict}
+            onStrictChange={setStrict}
+            uniqueTiles={uniqueTiles}
+            maxUniqueTiles={mode.maxUniqueTiles}
+          />
+        )
+      }
+      bottom={
+        <>
+          <select aria-label="Console" value={mode.id} onChange={handleModeChange}>
+            {MODES.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Size"
+            value={isCustomSize ? CUSTOM_SIZE_ID : activePreset}
+            onChange={handleSizeChange}
+            disabled={mode.sizes.length < 2}
+          >
+            {mode.sizes.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+            {!constrained && <option value={CUSTOM_SIZE_ID}>Custom…</option>}
+          </select>
+          {isCustomSize && (
+            <>
+              <input
+                type="number"
+                aria-label="Canvas width"
+                min={1}
+                max={CUSTOM_SIZE_MAX}
+                defaultValue={width}
+                onChange={(e) => handleCustomDimension('width', e.target.value)}
+              />
+              ×
+              <input
+                type="number"
+                aria-label="Canvas height"
+                min={1}
+                max={CUSTOM_SIZE_MAX}
+                defaultValue={height}
+                onChange={(e) => handleCustomDimension('height', e.target.value)}
+              />
             </>
           )}
-          <input
-            ref={referenceInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleReferenceLoad}
-            className={styles.hiddenFileInput}
+          <label className="ui-check">
+            <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
+            Show Grid
+          </label>
+          <label className="ui-check">
+            <input type="checkbox" checked={showRulers} onChange={(e) => setShowRulers(e.target.checked)} />
+            Rulers
+          </label>
+          <div className={styles.referenceControl}>
+            <button type="button" onClick={() => referenceInputRef.current?.click()}>
+              {referenceUrl ? 'Change reference' : 'Reference…'}
+            </button>
+            {referenceUrl && (
+              <>
+                <label className="ui-check">
+                  <input type="checkbox" checked={referenceVisible} onChange={(e) => setReferenceVisible(e.target.checked)} />
+                  Show
+                </label>
+                <label className={`ui-field ${styles.compactField}`}>
+                  <span className="ui-field-header">Opacity</span>
+                  <input
+                    type="range"
+                    aria-label="Reference opacity"
+                    min={0.05}
+                    max={1}
+                    step={0.05}
+                    value={referenceOpacity}
+                    disabled={!referenceVisible}
+                    onChange={(e) => setReferenceOpacity(Number(e.target.value))}
+                  />
+                </label>
+                <label className="ui-check">
+                  <input
+                    type="checkbox"
+                    checked={referenceAdjusting}
+                    disabled={!referenceVisible}
+                    onChange={(e) => setReferenceAdjusting(e.target.checked)}
+                  />
+                  Move
+                </label>
+                <label className={`ui-field ${styles.compactField}`}>
+                  <span className="ui-field-header">
+                    Size
+                    <output>{Math.round(referenceScale * 100)}%</output>
+                  </span>
+                  <input
+                    type="range"
+                    aria-label="Reference size"
+                    min={0.1}
+                    max={4}
+                    step={0.05}
+                    value={referenceScale}
+                    disabled={!referenceVisible}
+                    onChange={(e) => setReferenceScale(Number(e.target.value))}
+                  />
+                </label>
+                <button type="button" onClick={resetReferenceTransform}>
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  data-size="icon"
+                  aria-label="Remove reference"
+                  onClick={() => {
+                    setReferenceUrl(null)
+                    setReferenceAdjusting(false)
+                  }}
+                >
+                  ✕
+                </button>
+              </>
+            )}
+            <input
+              ref={referenceInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleReferenceLoad}
+              className={styles.hiddenFileInput}
+            />
+          </div>
+          <div className={styles.canvasZoomControl}>
+            <button type="button" data-size="icon" onClick={zoomOut} disabled={canvasZoom <= CANVAS_ZOOM_MIN} aria-label="Zoom out">
+              −
+            </button>
+            <span>Zoom {canvasZoom}x</span>
+            <button type="button" data-size="icon" onClick={zoomIn} disabled={canvasZoom >= CANVAS_ZOOM_MAX} aria-label="Zoom in">
+              +
+            </button>
+          </div>
+        </>
+      }
+    >
+        <CanvasRulers width={width} height={height} cellSize={cellSize} enabled={showRulers}>
+          <PixelCanvas
+            ref={canvasRef}
+            grid={grid}
+            width={width}
+            height={height}
+            cellSize={cellSize}
+            tool={tool}
+            color={tool === 'gradient' && !constrained && gradientClear.start ? TRANSPARENT : paintColor}
+            secondaryColor={secondaryColor}
+            ditherPattern={ditherPattern}
+            ditherSize={ditherSize}
+            showGrid={showGrid}
+            backdrop={backdrop}
+            reference={
+              referenceUrl && referenceVisible
+                ? {
+                    url: referenceUrl,
+                    opacity: referenceOpacity,
+                    x: referenceOffset.x,
+                    y: referenceOffset.y,
+                    scale: referenceScale,
+                    adjusting: referenceAdjusting,
+                    onMove: (x, y) => setReferenceOffset({ x, y }),
+                  }
+                : undefined
+            }
+            hardware={
+              constrained
+                ? { regionSize: mode.regionSize, owners, showTiles, showRegions, rejection }
+                : undefined
+            }
+            onBeginStroke={beginStroke}
+            onCancelStroke={undo}
+            onPaintCell={paintCell}
+            onPaintCells={paintCells}
+            selection={selection}
+            onSelectionChange={setSelection}
           />
-        </div>
-        <div className={styles.canvasZoomControl}>
-          <button type="button" data-size="icon" onClick={zoomOut} disabled={canvasZoom <= CANVAS_ZOOM_MIN} aria-label="Zoom out">
-            −
-          </button>
-          <span>Zoom {canvasZoom}x</span>
-          <button type="button" data-size="icon" onClick={zoomIn} disabled={canvasZoom >= CANVAS_ZOOM_MAX} aria-label="Zoom in">
-            +
-          </button>
-        </div>
-      </div>
-    </div>
+        </CanvasRulers>
+    </AppFrame>
   )
 }

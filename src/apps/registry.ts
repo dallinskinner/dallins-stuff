@@ -28,6 +28,8 @@ export interface AppDefinition {
   children?: AppDefinition[]
   /** Overrides Window's default 600px cap, for apps too wide to fit it. A number is in px; a string is used as-is (e.g. a viewport-relative unit for apps that should grow freely). */
   windowMaxWidth?: number | string
+  /** Opens the window at this fixed size (px) instead of sizing to its content, so an AppFrame's center area has room to grow. Clamped to the viewport. */
+  defaultSize?: { width: number; height: number }
   /** Message types this app can receive from other apps (see `messages.ts`); senders offer it as a target for these. */
   accepts?: AppMessageType[]
 }
