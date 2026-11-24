@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useAppMessage } from '../../desktop/WindowManager'
+import { useAppMessage, useMessageTargets } from '../../desktop/WindowManager'
+import { Dropdown } from '../pixel-art/Dropdown'
 import { oklabToRgb, rgbToHex, rgbToOklch } from '../image-tools/colorConversion'
 import styles from './ColorPaletteApp.module.css'
 
@@ -61,6 +62,7 @@ export function ColorPaletteApp() {
   const [colors, setColors] = useState<PaletteColor[]>(() => [makeColor()])
 
   const [valueOnly, setValueOnly] = useState(false)
+  const paletteTargets = useMessageTargets('palette')
 
   // A palette sent from another app replaces the current one, keeping its most-used colors and their proportions.
   useAppMessage('palette', ({ colors: incoming }) => {
@@ -93,7 +95,26 @@ export function ColorPaletteApp() {
         <label className={styles.toggle}>
           <input type="checkbox" checked={valueOnly} onChange={(e) => setValueOnly(e.target.checked)} />
           Value
-        </label>      </div>
+        </label>
+        {paletteTargets.length > 0 && (
+          <Dropdown label="Send to" disabled={colors.length === 0}>
+            {paletteTargets.map((target) => (
+              <button
+                key={target.path}
+                type="button"
+                onClick={() =>
+                  target.send({
+                    type: 'palette',
+                    colors: colors.map((color) => ({ hex: oklchToHex(color.l, color.c, color.h), weight: color.percent })),
+                  })
+                }
+              >
+                {target.label}
+              </button>
+            ))}
+          </Dropdown>
+        )}
+      </div>
 
       <div className={styles.workspace}>
         <div className={styles.canvas}>

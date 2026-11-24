@@ -1,7 +1,7 @@
 /** Data one app can hand to another through the window manager. To add a new kind, add a variant to
  *  this union, list its `type` in the receiving app's registry `accepts`, and handle it there with
  *  `useAppMessage`. */
-export type AppMessage = PaletteMessage
+export type AppMessage = PaletteMessage | FrameSourceMessage
 
 export type AppMessageType = AppMessage['type']
 
@@ -11,4 +11,11 @@ export interface PaletteMessage {
   type: 'palette'
   /** Most-used first. `weight` is relative (e.g. a pixel count); receivers normalize it. */
   colors: { hex: string; weight: number }[]
+}
+
+export interface FrameSourceMessage {
+  type: 'frame-source'
+  /** A live video stream (e.g. a canvas's `captureStream()`) for the receiver to play and process. */
+  stream: MediaStream
+  label?: string
 }
