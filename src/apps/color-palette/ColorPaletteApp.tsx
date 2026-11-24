@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAppMessage, useMessageTargets } from '../../desktop/WindowManager'
 import { Dropdown } from '../pixel-art/Dropdown'
 import { oklabToRgb, rgbToHex, rgbToOklch } from '../image-tools/colorConversion'
+import { AppFrame } from '../AppFrame'
 import styles from './ColorPaletteApp.module.css'
 
 interface PaletteColor {
@@ -87,48 +88,38 @@ export function ColorPaletteApp() {
   const removeColor = (id: number) => setColors((prev) => prev.filter((color) => color.id !== id))
 
   return (
-    <div className={styles.app}>
-      <div className={styles.actions}>
-        <button onClick={addColor} disabled={colors.length >= MAX_COLORS}>
-          Add color
-        </button>
-        <label className="ui-check">
-          <input type="checkbox" checked={valueOnly} onChange={(e) => setValueOnly(e.target.checked)} />
-          Value
-        </label>
-        {paletteTargets.length > 0 && (
-          <Dropdown label="Send to" disabled={colors.length === 0}>
-            {paletteTargets.map((target) => (
-              <button
-                key={target.path}
-                type="button"
-                onClick={() =>
-                  target.send({
-                    type: 'palette',
-                    colors: colors.map((color) => ({ hex: oklchToHex(color.l, color.c, color.h), weight: color.percent })),
-                  })
-                }
-              >
-                {target.label}
-              </button>
-            ))}
-          </Dropdown>
-        )}
-      </div>
-
-      <div className={styles.workspace}>
-        <div className={styles.canvas}>
-          {colors.length === 0 && <p className={styles.empty}>Add a color to get started.</p>}
-          {colors.map((color) => (
-            <div
-              key={color.id}
-              className={styles.swatch}
-              style={{ '--color': cssColor(color, valueOnly), '--share': total > 0 ? color.percent : 0 } as React.CSSProperties}
-              title={oklchToHex(color.l, color.c, color.h)}
-            />
-          ))}
-        </div>
-
+    <AppFrame
+      rightWidth="270px"
+      top={
+        <>
+          <button onClick={addColor} disabled={colors.length >= MAX_COLORS}>
+            Add color
+          </button>
+          <label className="ui-check">
+            <input type="checkbox" checked={valueOnly} onChange={(e) => setValueOnly(e.target.checked)} />
+            Value
+          </label>
+          {paletteTargets.length > 0 && (
+            <Dropdown label="Send to" disabled={colors.length === 0}>
+              {paletteTargets.map((target) => (
+                <button
+                  key={target.path}
+                  type="button"
+                  onClick={() =>
+                    target.send({
+                      type: 'palette',
+                      colors: colors.map((color) => ({ hex: oklchToHex(color.l, color.c, color.h), weight: color.percent })),
+                    })
+                  }
+                >
+                  {target.label}
+                </button>
+              ))}
+            </Dropdown>
+          )}
+        </>
+      }
+      right={
         <div className={styles.controls}>
           {colors.map((color, i) => (
             <div key={color.id} className={styles.colorRow}>
@@ -182,8 +173,20 @@ export function ColorPaletteApp() {
             </div>
           ))}
         </div>
-      </div>
+      }
+    >
+    <div className={styles.canvas}>
+      {colors.length === 0 && <p className={styles.empty}>Add a color to get started.</p>}
+      {colors.map((color) => (
+        <div
+          key={color.id}
+          className={styles.swatch}
+          style={{ '--color': cssColor(color, valueOnly), '--share': total > 0 ? color.percent : 0 } as React.CSSProperties}
+          title={oklchToHex(color.l, color.c, color.h)}
+        />
+      ))}
     </div>
+    </AppFrame>
   )
 }
 
