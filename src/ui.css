@@ -1,0 +1,554 @@
+/*
+ * UI standard — the one look for buttons, selects, inputs, sliders, checkboxes and disclosures.
+ *
+ * Tokens live on :root; the Debug → UI Components page tunes them live with a dial panel.
+ * Every control in the document gets this look, except inside `.dialkit-root` (the dev panel) and
+ * any `[data-ui-off]` subtree (e.g. the window close button). Variants are data attributes:
+ *   button[data-variant='primary' | 'solid' | 'tool' | 'swatch']   button[data-size='sm' | 'icon']
+ *   button[data-chevron]   button[aria-pressed='true'] fills solid — the active state of any toggle.
+ */
+
+:root {
+  --ui-height: 32px;
+  --ui-pad-x: 8px;
+  --ui-radius: 4px;
+  --ui-border-width: 1px;
+  --ui-font-size: 14px;
+  /* Field labels, readouts, disclosure summaries and group labels — smaller than the control text. */
+  --ui-label-size: 12px;
+  /* Muted text for group-style labels: disclosure summaries and dropdown group labels. */
+  --ui-label-color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  --ui-font-variation: 'MONO' 100, 'DRKM' var(--font-drkm);
+  --ui-border: #444444;
+  --ui-surface: #262626;
+  --ui-track: 4px;
+  --ui-thumb: 12px;
+  /* Space between adjacent slider fields; must exceed the label-to-track gap so labels read as belonging to the track below. */
+  --ui-field-gap: 16px;
+  /* Visible space between a field's label and its control (the select's box, or the slider's track). */
+  --ui-label-gap: 8px;
+  /* Pixel-art chevron: seven 1px squares, one gradient layer each so they paint in currentColor.
+     Selects and disclosure summaries position them (7 wide x 4 tall). */
+  --ui-chevron-image:
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor);
+}
+
+/* `:scope` is the document root, so `:scope button` ranks like the old `.ui button`. */
+@scope (:root) to (.dialkit-root, [data-ui-off]) {
+  /* ---- Buttons, selects, text inputs ---- */
+
+  :scope :is(button, .ui-button, select, input:is(:not([type]), [type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password'])) {
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    text-shadow: none;
+    box-shadow: none;
+    box-sizing: border-box;
+    height: var(--ui-height);
+    margin: 0;
+    /* padding is set per element: select needs extra room for its arrow */
+    border: var(--ui-border-width) solid var(--ui-border);
+    border-radius: var(--ui-radius);
+    /* background-color, not the shorthand: the shorthand would reset the select's arrow image. */
+    background-color: var(--ui-surface);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: var(--ui-font-size);
+    font-variation-settings: var(--ui-font-variation);
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  :scope :is(button, .ui-button, input:is(:not([type]), [type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password'])) {
+    padding: 0 var(--ui-pad-x);
+  }
+
+  :scope :is(button, .ui-button, select):hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--ui-border) 50%, var(--foreground));
+  }
+
+  :scope :is(button, select, input, summary):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  :scope :is(button, select, input):disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  :scope button[data-variant='primary'] {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Solid is both the emphasized-action look and the active state of any toggle. */
+  :scope button[data-variant='solid'],
+  :scope button[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+
+  :scope button[data-size='sm'] {
+    height: calc(var(--ui-height) - 8px);
+    padding: 0 calc(var(--ui-pad-x) - 2px);
+    font-size: calc(var(--ui-font-size) - 2px);
+  }
+
+  :scope button:is([data-size='icon'], [data-variant='tool']) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--ui-height);
+    padding: 0;
+  }
+
+  :scope button[data-variant='tool']:not([aria-pressed='true']) {
+    background: var(--content-background);
+  }
+
+  /* Swatch button: the color is the button, so it drops the standard box (height, padding, surface fill)
+     and shows selection as an inset ring instead of the solid toggle fill. Set --color (or an inline
+     background-color), and --swatch-h if it needs a fixed height; otherwise size it from outside. */
+  :scope button[data-variant='swatch'] {
+    height: var(--swatch-h, auto);
+    padding: 0;
+    border: 1px solid var(--ui-border);
+    border-radius: calc(var(--ui-radius) / 2);
+    background-color: var(--color, transparent);
+  }
+
+  :scope button[data-variant='swatch'][aria-pressed='true'] {
+    border-color: var(--ui-border);
+    background-color: var(--color, transparent);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* Mask-painted icon so it takes the button's text color (white when pressed). Set --icon: url(...). */
+  .ui-icon {
+    display: block;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    mask-image: var(--icon);
+    mask-repeat: no-repeat;
+    mask-size: contain;
+    -webkit-mask-image: var(--icon);
+  }
+
+  /* A <label> that wraps a hidden file input and should read as a button. */
+  :scope .ui-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
+  }
+
+  :scope .ui-button:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* ---- Select (and any button with data-chevron, e.g. a dropdown trigger) ---- */
+
+  :scope :is(select, button[data-chevron]) {
+    padding: 0 26px 0 var(--ui-pad-x);
+    /* Pixel-art chevron: seven 1px squares (a stepped down-and-up line, 7x4, like the Pixel Art line
+       tool), each its own gradient layer so they paint in currentColor. Positions are measured from
+       the border box; --arrow-top is the first row, centered on the control's height and rounded to
+       a whole pixel so it stays crisp at odd heights. */
+    --arrow-top: round(down, calc(var(--ui-height) / 2 - 2px), 1px);
+    background-image: var(--ui-chevron-image);
+    background-position:
+      right 16px top var(--arrow-top),
+      right 15px top calc(var(--arrow-top) + 1px),
+      right 14px top calc(var(--arrow-top) + 2px),
+      right 13px top calc(var(--arrow-top) + 3px),
+      right 12px top calc(var(--arrow-top) + 2px),
+      right 11px top calc(var(--arrow-top) + 1px),
+      right 10px top var(--arrow-top);
+    background-size: 1px 1px;
+    background-origin: border-box;
+    background-repeat: no-repeat;
+  }
+
+  /* Group labels match the disclosure summary: small, tracked-out caps. Only the typographic properties
+     are honored inside a native dropdown; iOS shows its own picker. */
+  :scope select optgroup {
+    font-family: inherit;
+    font-size: var(--ui-label-size);
+    font-style: normal;
+    font-weight: normal;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-variation-settings: var(--ui-font-variation);
+  }
+
+  :scope select option {
+    font-family: inherit;
+    font-size: var(--ui-font-size);
+    letter-spacing: normal;
+    text-transform: none;
+    background: var(--ui-surface);
+    color: var(--foreground);
+  }
+
+  /* Chromium's opt-in stylable select: the popup becomes real, styleable DOM. Everywhere else the
+     rules above style the native picker. */
+  @supports (appearance: base-select) {
+    :scope select,
+    :scope select::picker(select) {
+      appearance: base-select;
+    }
+
+    /* base-select makes the control a flex container; center its text like a normal select. */
+    :scope select {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Keep the drawn arrow from the base select rule rather than the built-in icon. */
+    :scope select::picker-icon {
+      display: none;
+    }
+
+    :scope select::picker(select) {
+      box-sizing: border-box;
+      margin-top: 4px;
+      padding: 4px;
+      border: var(--ui-border-width) solid var(--ui-border);
+      border-radius: var(--ui-radius);
+      background: var(--ui-surface);
+      color: var(--foreground);
+      font-family: inherit;
+      font-size: var(--ui-font-size);
+      font-variation-settings: var(--ui-font-variation);
+    }
+
+    :scope select optgroup {
+      /* No horizontal inset of our own: Chrome's base-select already offsets the label ~7px, which lands
+         it flush with the options' inset. Padding here would also push the child options in. */
+      padding: 6px 0 2px;
+      text-indent: 0;
+      font-weight: normal;
+      /* Color, not opacity: the options are children and must stay full strength. */
+      color: var(--ui-label-color);
+    }
+
+    /* The label is the group's own text, so the gap beneath it belongs to the first option. */
+    :scope select optgroup > option:first-of-type {
+      margin-top: 4px;
+    }
+
+    :scope select option {
+      display: flex;
+      align-items: center;
+      padding: 4px var(--ui-pad-x);
+      text-indent: 0;
+      border-radius: calc(var(--ui-radius) / 2);
+      background: transparent;
+      color: var(--foreground);
+      cursor: pointer;
+      outline: none;
+    }
+
+    :scope select option:hover,
+    :scope select option:focus-visible {
+      background: color-mix(in srgb, var(--foreground) 12%, transparent);
+    }
+
+    :scope select option:checked {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    :scope select option::checkmark {
+      display: none;
+    }
+  }
+
+  /* ---- Text / number input ---- */
+
+  :scope input:is(:not([type]), [type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password']) {
+    background: var(--content-background);
+    cursor: text;
+    text-align: start;
+  }
+
+  :scope input[type='number'] {
+    width: 7ch;
+  }
+
+  /* ---- Multi-line text ---- */
+
+  :scope textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: calc(var(--ui-height) * 2);
+    margin: 0;
+    padding: calc(var(--ui-pad-x) - 2px) var(--ui-pad-x);
+    border: var(--ui-border-width) solid var(--ui-border);
+    border-radius: var(--ui-radius);
+    background-color: var(--content-background);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: var(--ui-font-size);
+    font-variation-settings: var(--ui-font-variation);
+    line-height: 1.3;
+    text-align: start;
+    resize: vertical;
+  }
+
+  :scope textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* ---- Color button: the picked color fills the whole button, edge to edge ---- */
+
+  :scope input[type='color'] {
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    width: var(--ui-height);
+    height: var(--ui-height);
+    margin: 0;
+    padding: 0;
+    border: var(--ui-border-width) solid var(--ui-border);
+    border-radius: var(--ui-radius);
+    background: none;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  :scope input[type='color']:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--ui-border) 50%, var(--foreground));
+  }
+
+  :scope input[type='color']::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  :scope input[type='color']::-webkit-color-swatch {
+    border: 0;
+    border-radius: calc(var(--ui-radius) - var(--ui-border-width));
+  }
+
+  :scope input[type='color']::-moz-color-swatch {
+    border: 0;
+    border-radius: calc(var(--ui-radius) - var(--ui-border-width));
+  }
+
+  /* ---- Removable swatch: a color button with a small round × badge on its top-right corner ----
+     Wrap the swatch in .ui-swatch (the positioning parent) and add a button.ui-swatch-remove. */
+
+  .ui-swatch {
+    position: relative;
+    display: inline-flex;
+  }
+
+  :scope button.ui-swatch-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 50%;
+    background-color: var(--content-background);
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  /* ---- Slider field: label + readout in a header row, track below ---- */
+
+  .ui-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-label-gap);
+    font-size: var(--ui-label-size);
+    font-variation-settings: var(--ui-font-variation);
+  }
+
+  .ui-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-field-gap);
+  }
+
+  .ui-field-header {
+    /* line-height 1 drops the half-leading that would otherwise add invisible space around the label. */
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .ui-field-header :is(output, code) {
+    opacity: 0.8;
+  }
+
+  /* An editable number box standing in for the readout, for apps that need typed values. */
+  .ui-field-header input[type='number'] {
+    align-self: center;
+    height: calc(var(--ui-height) - 8px);
+    width: 7ch;
+    padding: 0 calc(var(--ui-pad-x) / 2);
+  }
+
+  :scope input[type='range'] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    min-width: 0;
+    height: var(--ui-thumb);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  :scope input[type='range']::-webkit-slider-runnable-track {
+    height: var(--ui-track);
+    border-radius: var(--ui-track);
+    background: var(--ui-border);
+  }
+
+  :scope input[type='range']::-moz-range-track {
+    height: var(--ui-track);
+    border-radius: var(--ui-track);
+    background: var(--ui-border);
+  }
+
+  :scope input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--ui-thumb);
+    height: var(--ui-thumb);
+    margin-top: calc((var(--ui-track) - var(--ui-thumb)) / 2);
+    border: 0;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  :scope input[type='range']::-moz-range-thumb {
+    width: var(--ui-thumb);
+    height: var(--ui-thumb);
+    border: 0;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* The input is as tall as the thumb, so the track floats in empty space. Pull that space back out so
+     --ui-label-gap and --ui-field-gap are measured to the visible track, same as for a select. */
+  .ui-field > input[type='range'] {
+    margin-block: calc((var(--ui-track) - var(--ui-thumb)) / 2);
+  }
+
+  :scope input[type='range']:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---- Checkbox ---- */
+
+  .ui-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: var(--ui-font-size);
+    font-variation-settings: var(--ui-font-variation);
+  }
+
+  :scope input[type='checkbox'] {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  /* ---- Group label: muted small caps heading for a cluster of controls (popover sections, etc.) ---- */
+
+  .ui-group-label {
+    font-size: var(--ui-label-size);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ui-label-color);
+    font-variation-settings: var(--ui-font-variation);
+  }
+
+  /* ---- Disclosure ---- */
+
+  :scope details {
+    border: var(--ui-border-width) solid var(--ui-border);
+    border-radius: var(--ui-radius);
+  }
+
+  :scope summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--ui-height);
+    padding: 0 26px 0 var(--ui-pad-x);
+    cursor: pointer;
+    user-select: none;
+    font-size: var(--ui-label-size);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ui-label-color);
+    font-variation-settings: var(--ui-font-variation);
+  }
+
+  /* The flex layout above drops the native marker, so draw the select's chevron: down when closed,
+     flipped up when open. */
+  :scope summary {
+    --arrow-top: round(down, calc(var(--ui-height) / 2 - 2px), 1px);
+    background-image: var(--ui-chevron-image);
+    background-position:
+      right 16px top var(--arrow-top),
+      right 15px top calc(var(--arrow-top) + 1px),
+      right 14px top calc(var(--arrow-top) + 2px),
+      right 13px top calc(var(--arrow-top) + 3px),
+      right 12px top calc(var(--arrow-top) + 2px),
+      right 11px top calc(var(--arrow-top) + 1px),
+      right 10px top var(--arrow-top);
+    background-size: 1px 1px;
+    background-origin: border-box;
+    background-repeat: no-repeat;
+  }
+
+  :scope details[open] > summary {
+    background-position:
+      right 16px top calc(var(--arrow-top) + 3px),
+      right 15px top calc(var(--arrow-top) + 2px),
+      right 14px top calc(var(--arrow-top) + 1px),
+      right 13px top var(--arrow-top),
+      right 12px top calc(var(--arrow-top) + 1px),
+      right 11px top calc(var(--arrow-top) + 2px),
+      right 10px top calc(var(--arrow-top) + 3px);
+  }
+
+  :scope summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ui-details-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-field-gap);
+    /* Top padding is the label gap, so a summary reads like any other label above its content. */
+    /* Bottom is 1.5x: a slider's thumb hangs past its track, so equal padding looks tight under one. */
+    padding: var(--ui-label-gap) var(--ui-pad-x) calc(var(--ui-pad-x) * 1.5);
+  }
+}

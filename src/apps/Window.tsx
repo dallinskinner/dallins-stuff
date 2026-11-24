@@ -176,6 +176,7 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
         <span className={styles.title}>{title}</span>
         <button
           type="button"
+          data-ui-off
           onClick={onClose}
           className={styles.close}
           style={{ '--icon': `url(${closeIcon})` } as React.CSSProperties}

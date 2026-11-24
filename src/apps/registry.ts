@@ -4,6 +4,7 @@ import { AboutApp } from './AboutApp'
 import { ProjectsApp } from './ProjectsApp'
 import { ContactApp } from './ContactApp'
 import { TypographyApp } from './TypographyApp'
+import { UiComponentsApp } from './UiComponentsApp'
 import { PixelArtApp } from './pixel-art/PixelArtApp'
 import { ScreenSavorApp } from './screen-savor/ScreenSavorApp'
 import { ImageToolsApp } from './image-tools/ImageToolsApp'
@@ -50,7 +51,10 @@ export const apps: AppDefinition[] = [
   {
     id: 'debug',
     label: 'Debug',
-    children: [{ id: 'typography', label: 'Typography', icon: documentIcon, component: TypographyApp }],
+    children: [
+      { id: 'typography', label: 'Typography', icon: documentIcon, component: TypographyApp },
+      { id: 'ui-components', label: 'UI Components', icon: documentIcon, component: UiComponentsApp, windowMaxWidth: 760 },
+    ],
   },
 ]
 
