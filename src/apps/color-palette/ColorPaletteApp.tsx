@@ -92,7 +92,7 @@ export function ColorPaletteApp() {
         <button onClick={addColor} disabled={colors.length >= MAX_COLORS}>
           Add color
         </button>
-        <label className={styles.toggle}>
+        <label className="ui-check">
           <input type="checkbox" checked={valueOnly} onChange={(e) => setValueOnly(e.target.checked)} />
           Value
         </label>
@@ -133,50 +133,52 @@ export function ColorPaletteApp() {
           {colors.map((color, i) => (
             <div key={color.id} className={styles.colorRow}>
               <div className={styles.rowHeader}>
-                <label className={styles.chip} style={{ '--color': cssColor(color) } as React.CSSProperties}>
+                <span className="ui-swatch">
                   <input
                     type="color"
-                    className={styles.chipInput}
                     value={oklchToHex(color.l, color.c, color.h)}
                     onChange={(e) => update(color.id, hexToOklch(e.target.value))}
                     aria-label={`Pick color ${i + 1}`}
                   />
-                </label>
+                  <button
+                    type="button"
+                    className="ui-swatch-remove"
+                    onClick={() => removeColor(color.id)}
+                    aria-label={`Remove color ${i + 1}`}
+                  >
+                    ×
+                  </button>
+                </span>
                 <code>{oklchToHex(color.l, color.c, color.h)}</code>
-                <button
-                  className={styles.remove}
-                  onClick={() => removeColor(color.id)}
-                                    aria-label={`Remove color ${i + 1}`}
-                >
-                  ×
-                </button>
               </div>
-              <Slider label="Hue" value={color.h} min={0} max={360} step={1} onChange={(h) => update(color.id, { h })} />
-              <Slider
-                label="Lightness"
-                value={color.l}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={(l) => update(color.id, { l })}
-              />
-              <Slider
-                label="Chroma"
-                value={color.c}
-                min={0}
-                max={MAX_CHROMA}
-                step={0.005}
-                onChange={(c) => update(color.id, { c })}
-              />
-              <Slider
-                label="Percent"
-                value={color.percent}
-                min={0}
-                max={100}
-                step={1}
-                onChange={(percent) => update(color.id, { percent })}
-                display={`${shares[i]}%`}
-              />
+              <div className="ui-fields">
+                <Slider label="Hue" value={color.h} min={0} max={360} step={1} onChange={(h) => update(color.id, { h })} />
+                <Slider
+                  label="Lightness"
+                  value={color.l}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(l) => update(color.id, { l })}
+                />
+                <Slider
+                  label="Chroma"
+                  value={color.c}
+                  min={0}
+                  max={MAX_CHROMA}
+                  step={0.005}
+                  onChange={(c) => update(color.id, { c })}
+                />
+                <Slider
+                  label="Percent"
+                  value={color.percent}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onChange={(percent) => update(color.id, { percent })}
+                  display={`${shares[i]}%`}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -198,8 +200,11 @@ interface SliderProps {
 
 function Slider({ label, value, min, max, step, onChange, display }: SliderProps) {
   return (
-    <label className={styles.slider}>
-      <span>{label}</span>
+    <label className="ui-field">
+      <span className="ui-field-header">
+        {label}
+        <output>{display ?? String(Number(value.toFixed(3)))}</output>
+      </span>
       <input
         type="range"
         min={min}
@@ -208,7 +213,6 @@ function Slider({ label, value, min, max, step, onChange, display }: SliderProps
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      <output className={styles.readout}>{display ?? String(Number(value.toFixed(3)))}</output>
     </label>
   )
 }

@@ -299,7 +299,7 @@ export function DitherApp() {
   return (
     <div className={styles.app}>
       <div className={styles.actions}>
-        <label className={styles.fileButton}>
+        <label className="ui-button">
           Open video or image
           <input
             type="file"
@@ -331,9 +331,9 @@ export function DitherApp() {
           {!sourceLabel && <p className={styles.empty}>Open a video or image, or send a sketch here from the p5 tool.</p>}
         </div>
 
-        <div className={styles.controls}>
-          <label className={styles.field}>
-            Algorithm
+        <div className={`ui-fields ${styles.controls}`}>
+          <label className="ui-field">
+            <span className="ui-field-header">Algorithm</span>
             <select value={params.algorithm} onChange={(e) => patch({ algorithm: e.target.value as DitherParams['algorithm'] })}>
               {ALGORITHMS.map(({ id, label }) => (
                 <option key={id} value={id}>
@@ -342,8 +342,8 @@ export function DitherApp() {
               ))}
             </select>
           </label>
-          <label className={styles.field}>
-            Color matching
+          <label className="ui-field">
+            <span className="ui-field-header">Color matching</span>
             <select
               value={params.matching}
               title={MATCHINGS.find((m) => m.id === params.matching)?.hint}
@@ -357,8 +357,8 @@ export function DitherApp() {
             </select>
           </label>
           {exportsOnce && (
-            <label className={styles.field}>
-              Playback speed
+            <label className="ui-field">
+              <span className="ui-field-header">Playback speed</span>
               <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
                 {SPEEDS.map((n) => (
                   <option key={n} value={n}>
@@ -368,8 +368,8 @@ export function DitherApp() {
               </select>
             </label>
           )}
-          <label className={styles.field}>
-            Output scale
+          <label className="ui-field">
+            <span className="ui-field-header">Output scale</span>
             <select value={outputScale} disabled={recording} onChange={(e) => setOutputScale(Number(e.target.value))}>
               {OUTPUT_SCALES.filter((n) => {
                 if (!sourceSize) return n === 1
@@ -400,8 +400,8 @@ export function DitherApp() {
             </button>
           </div>
 
-          <div className={styles.field}>
-            Palette
+          <div className="ui-field">
+            <span className="ui-field-header">Palette</span>
             <select
               value=""
               onChange={(e) => {
@@ -420,9 +420,10 @@ export function DitherApp() {
             </select>
             <div className={styles.swatches}>
               {params.palette.map((hex, i) => (
-                <div key={i} className={styles.swatch}>
+                <div key={i} className="ui-swatch">
                   <input type="color" value={hex} onChange={(e) => setColor(i, e.target.value)} aria-label={`Palette color ${i + 1}`} />
                   <button
+                    className="ui-swatch-remove"
                     onClick={() => patch({ palette: params.palette.filter((_, j) => j !== i) })}
                     disabled={params.palette.length <= 1}
                     aria-label={`Remove color ${i + 1}`}
@@ -444,7 +445,7 @@ export function DitherApp() {
             <button onClick={() => download(new Blob([serializePreset(params)], { type: 'application/json' }), 'dither.ditherpreset.json')}>
               Save preset
             </button>
-            <label className={styles.fileButton}>
+            <label className="ui-button">
               Load preset
               <input
                 type="file"
@@ -466,10 +467,10 @@ export function DitherApp() {
 
 function Slider({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void }) {
   return (
-    <label className={styles.field}>
-      <span className={styles.fieldHeader}>
+    <label className="ui-field">
+      <span className="ui-field-header">
         {label}
-        <code>{Number.isInteger(step) ? value : value.toFixed(2)}</code>
+        <output>{Number.isInteger(step) ? value : value.toFixed(2)}</output>
       </span>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
     </label>

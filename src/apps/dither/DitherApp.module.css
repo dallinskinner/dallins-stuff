@@ -4,10 +4,7 @@
   gap: var(--padding);
 }
 
-.app button,
-.app select,
-.app code,
-.fileButton {
+.app code {
   font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
   font-size: 14px;
 }
@@ -17,17 +14,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--padding);
-}
-
-.actions button:disabled,
-.swatch button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.fileButton {
-  position: relative;
-  cursor: pointer;
 }
 
 .hiddenFileInput {
@@ -93,41 +79,13 @@
 .controls {
   display: flex;
   flex-direction: column;
-  gap: var(--padding);
   width: 240px;
   max-height: 70vh;
   overflow-y: auto;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.fieldHeader {
-  display: flex;
-  justify-content: space-between;
-}
-
 .swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-}
-
-.swatch {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.swatch input[type='color'] {
-  width: 32px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: none;
-  cursor: pointer;
+  gap: 10px;
 }

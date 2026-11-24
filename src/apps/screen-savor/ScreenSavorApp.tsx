@@ -296,17 +296,21 @@ export function ScreenSavorApp() {
           <button
             type="button"
             className={styles.copyButton}
+            data-size="sm"
             onClick={() => navigator.clipboard.writeText(preRef.current?.textContent ?? art)}
           >
             Copy
           </button>
         </div>
         <div className={styles.controls}>
-          <details className={styles.settingsGroup} open>
+          <details open>
             <summary>Canvas</summary>
-            <div className={styles.groupContent}>
-              <label className={styles.field}>
-                Width {widthLabel}
+            <div className="ui-details-body">
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Width
+                  <output>{widthLabel}</output>
+                </span>
                 <input
                   type="range"
                   min={WIDTH_MIN}
@@ -318,8 +322,11 @@ export function ScreenSavorApp() {
                   onKeyUp={(e) => setGridWidth(Number(e.currentTarget.value))}
                 />
               </label>
-              <label className={styles.field}>
-                Height {heightLabel}
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Height
+                  <output>{heightLabel}</output>
+                </span>
                 <input
                   type="range"
                   min={HEIGHT_MIN}
@@ -331,8 +338,11 @@ export function ScreenSavorApp() {
                   onKeyUp={(e) => setGridHeight(Number(e.currentTarget.value))}
                 />
               </label>
-              <label className={styles.field}>
-                Noise scale {scale.toFixed(3)}
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Noise scale
+                  <output>{scale.toFixed(3)}</output>
+                </span>
                 <input
                   type="range"
                   min={SCALE_MIN}
@@ -345,11 +355,14 @@ export function ScreenSavorApp() {
             </div>
           </details>
 
-          <details className={styles.settingsGroup}>
+          <details>
             <summary>Font</summary>
-            <div className={styles.groupContent}>
-              <label className={styles.field}>
-                Cell size {cellSizeLabel}px
+            <div className="ui-details-body">
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Cell size
+                  <output>{cellSizeLabel}px</output>
+                </span>
                 <input
                   type="range"
                   min={CELL_MIN}
@@ -361,8 +374,11 @@ export function ScreenSavorApp() {
                   onKeyUp={(e) => setCellSize(Number(e.currentTarget.value))}
                 />
               </label>
-              <label className={styles.field}>
-                Font weight {fontWeight}
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Font weight
+                  <output>{fontWeight}</output>
+                </span>
                 <input
                   type="range"
                   min={FONT_WEIGHT_MIN}
@@ -372,8 +388,11 @@ export function ScreenSavorApp() {
                   onChange={(e) => setFontWeight(Number(e.target.value))}
                 />
               </label>
-              <label className={styles.field}>
-                Line height {lineHeightLabel.toFixed(2)}
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Line height
+                  <output>{lineHeightLabel.toFixed(2)}</output>
+                </span>
                 <input
                   type="range"
                   min={LINE_HEIGHT_MIN}
@@ -385,8 +404,11 @@ export function ScreenSavorApp() {
                   onKeyUp={(e) => setLineHeight(Number(e.currentTarget.value))}
                 />
               </label>
-              <label className={styles.field}>
-                Letter spacing {letterSpacingLabel.toFixed(2)}em
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Letter spacing
+                  <output>{letterSpacingLabel.toFixed(2)}em</output>
+                </span>
                 <input
                   type="range"
                   min={LETTER_SPACING_MIN}
@@ -401,11 +423,11 @@ export function ScreenSavorApp() {
             </div>
           </details>
 
-          <details className={styles.settingsGroup}>
+          <details>
             <summary>Ramp</summary>
-            <div className={styles.groupContent}>
-              <label className={styles.field}>
-                Ramp (dark → light)
+            <div className="ui-details-body">
+              <label className="ui-field">
+                <span className="ui-field-header">Ramp (dark → light)</span>
                 <textarea
                   className={styles.rampInput}
                   value={ramp}
@@ -413,10 +435,9 @@ export function ScreenSavorApp() {
                   spellCheck={false}
                 />
               </label>
-              <label className={styles.field}>
-                Animation mode
+              <label className="ui-field">
+                <span className="ui-field-header">Animation mode</span>
                 <select
-                  className={styles.selectInput}
                   value={animationMode}
                   onChange={(e) => setAnimationMode(e.target.value as AnimationMode)}
                 >
@@ -426,9 +447,11 @@ export function ScreenSavorApp() {
               </label>
               {animationMode === 'fade' ? (
                 <>
-                  <label className={styles.field}>
-                    Fade from {startFade > 0 ? '+' : ''}
-                    {startFade.toFixed(2)}
+                  <label className="ui-field">
+                    <span className="ui-field-header">
+                      Fade from
+                      <output>{`${startFade > 0 ? '+' : ''}${startFade.toFixed(2)}`}</output>
+                    </span>
                     <input
                       type="range"
                       min={FADE_MIN}
@@ -438,9 +461,11 @@ export function ScreenSavorApp() {
                       onChange={(e) => setStartFade(Number(e.target.value))}
                     />
                   </label>
-                  <label className={styles.field}>
-                    Fade to {endFade > 0 ? '+' : ''}
-                    {endFade.toFixed(2)}
+                  <label className="ui-field">
+                    <span className="ui-field-header">
+                      Fade to
+                      <output>{`${endFade > 0 ? '+' : ''}${endFade.toFixed(2)}`}</output>
+                    </span>
                     <input
                       type="range"
                       min={FADE_MIN}
@@ -452,8 +477,11 @@ export function ScreenSavorApp() {
                   </label>
                 </>
               ) : (
-                <label className={styles.field}>
-                  Depth speed {depthSpeed.toFixed(4)}
+                <label className="ui-field">
+                  <span className="ui-field-header">
+                    Depth speed
+                    <output>{depthSpeed.toFixed(4)}</output>
+                  </span>
                   <input
                     type="range"
                     min={DEPTH_SPEED_MIN}
@@ -467,20 +495,19 @@ export function ScreenSavorApp() {
             </div>
           </details>
 
-          <details className={styles.settingsGroup} open>
+          <details open>
             <summary>Seed</summary>
-            <div className={styles.groupContent}>
-              <label className={styles.field}>
-                Seed
+            <div className="ui-details-body">
+              <label className="ui-field">
+                <span className="ui-field-header">Seed</span>
                 <input
                   type="text"
-                  className={styles.seedInput}
                   value={seed}
                   onChange={(e) => setSeed(e.target.value)}
                   spellCheck={false}
                 />
               </label>
-              <label className={styles.checkboxField}>
+              <label className="ui-check">
                 <input
                   type="checkbox"
                   checked={shuffleOnLoop}
@@ -494,11 +521,14 @@ export function ScreenSavorApp() {
             </div>
           </details>
 
-          <details className={styles.settingsGroup} open>
+          <details open>
             <summary>Playback</summary>
-            <div className={styles.groupContent}>
-              <label className={styles.field}>
-                Frames {totalFrames}
+            <div className="ui-details-body">
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Frames
+                  <output>{totalFrames}</output>
+                </span>
                 <input
                   type="range"
                   min={FRAMES_MIN}
@@ -508,8 +538,11 @@ export function ScreenSavorApp() {
                   onChange={(e) => setTotalFrames(Number(e.target.value))}
                 />
               </label>
-              <label className={styles.field}>
-                Speed {playbackSpeed.toFixed(1)}x
+              <label className="ui-field">
+                <span className="ui-field-header">
+                  Speed
+                  <output>{playbackSpeed.toFixed(1)}x</output>
+                </span>
                 <input
                   type="range"
                   min={SPEED_MIN}
