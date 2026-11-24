@@ -70,20 +70,20 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
       </div>
       <p className={styles.dialHint}>Click a shape on the canvas to select it, and drag to move it.</p>
 
-      <details className={styles.section}>
+      <details>
         <summary>Canvas</summary>
-        <div className={styles.sectionBody}>
-          <label className={styles.slider}>
-            <span>Size</span>
+        <div className="ui-details-body">
+          <label className="ui-field">
+            <span className="ui-field-header">Size</span>
             <span className={styles.sizeInputs}>
-              <input type="number" className={styles.numberInput} min={MIN_CANVAS} max={MAX_CANVAS} value={scene.width} onChange={(e) => e.target.value !== '' && canvasSize('width', Number(e.target.value))} aria-label="Canvas width" />
+              <input type="number" min={MIN_CANVAS} max={MAX_CANVAS} value={scene.width} onChange={(e) => e.target.value !== '' && canvasSize('width', Number(e.target.value))} aria-label="Canvas width" />
               ×
-              <input type="number" className={styles.numberInput} min={MIN_CANVAS} max={MAX_CANVAS} value={scene.height} onChange={(e) => e.target.value !== '' && canvasSize('height', Number(e.target.value))} aria-label="Canvas height" />
+              <input type="number" min={MIN_CANVAS} max={MAX_CANVAS} value={scene.height} onChange={(e) => e.target.value !== '' && canvasSize('height', Number(e.target.value))} aria-label="Canvas height" />
             </span>
           </label>
-          <label className={styles.slider}>
-            <span>Background</span>
-            <input type="color" className={styles.colorInput} value={scene.background} onChange={(e) => onScene((prev) => ({ ...prev, background: e.target.value }))} />
+          <label className="ui-field">
+            <span className="ui-field-header">Background</span>
+            <input type="color" value={scene.background} onChange={(e) => onScene((prev) => ({ ...prev, background: e.target.value }))} />
           </label>
           <Slider label="Loop (s)" value={scene.loop} min={1} max={30} step={0.5} onChange={(loop) => onScene((prev) => ({ ...prev, loop: Math.max(0.5, loop) }))} />
         </div>
@@ -91,8 +91,8 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
 
       <ol className={styles.shapeList} aria-label="Shapes, bottom to top">
         {[...scene.shapes].reverse().map((shape) => (
-          <li key={shape.id} data-selected={shape.id === selectedId}>
-            <button type="button" className={styles.shapeName} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
+          <li key={shape.id}>
+            <button type="button" className={styles.shapeName} aria-pressed={shape.id === selectedId} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
               <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />
               {shape.name}
               {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
@@ -115,14 +115,14 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
       </ol>
 
       {selected && (
-        <div className={styles.inspector}>
-          <input className={styles.titleInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Shape name" />
-          <label className={styles.slider}>
-            <span>Color</span>
-            <input type="color" className={styles.colorInput} value={selected.color} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, color: e.target.value }))} />
+        <div className={`ui-fields ${styles.inspector}`}>
+          <input className={styles.nameInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Shape name" />
+          <label className="ui-field">
+            <span className="ui-field-header">Color</span>
+            <input type="color" value={selected.color} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, color: e.target.value }))} />
           </label>
           {selected.type !== 'line' && (
-            <label className={styles.toggle}>
+            <label className="ui-check">
               <input type="checkbox" checked={selected.outline} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, outline: e.target.checked }))} />
               Outline only
             </label>

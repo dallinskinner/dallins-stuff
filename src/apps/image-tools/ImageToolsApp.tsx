@@ -483,7 +483,7 @@ export function ImageToolsApp() {
               type="button"
               onClick={() => selectTool('eyedropper')}
               disabled={isProcessing}
-              className={tool === 'eyedropper' ? styles.toolActive : undefined}
+              aria-pressed={tool === 'eyedropper'}
             >
               Eyedropper
             </button>
@@ -491,7 +491,7 @@ export function ImageToolsApp() {
               type="button"
               onClick={() => selectTool('annotate')}
               disabled={isProcessing}
-              className={tool === 'annotate' ? styles.toolActive : undefined}
+              aria-pressed={tool === 'annotate'}
             >
               Annotate
             </button>
@@ -499,7 +499,7 @@ export function ImageToolsApp() {
               type="button"
               onClick={() => selectTool('crop')}
               disabled={isProcessing}
-              className={tool === 'crop' ? styles.toolActive : undefined}
+              aria-pressed={tool === 'crop'}
             >
               Crop
             </button>
@@ -537,7 +537,6 @@ export function ImageToolsApp() {
                 )
               }
               disabled={isProcessing}
-              className={styles.fileNameInput}
               aria-label="Number of colors to extract"
             />
             <input
@@ -594,30 +593,29 @@ export function ImageToolsApp() {
                   <div className={styles.settingsWrapper} ref={settingsRef}>
                     <button
                       type="button"
-                      className={styles.settingsButton}
+                      data-size="icon"
                       onClick={() => setSettingsOpen((prev) => !prev)}
                       aria-label="Preview settings"
                       aria-expanded={settingsOpen}
                     >
-                      <span className={styles.gearIcon} style={{ '--icon': `url(${gearIcon})` } as React.CSSProperties} />
+                      <span className="ui-icon" style={{ '--icon': `url(${gearIcon})` } as React.CSSProperties} />
                     </button>
                     {settingsOpen && (
                       <div className={styles.settingsMenu}>
                         <div className={styles.settingsSection}>
-                          <span className={styles.settingsLabel}>Show</span>
+                          <span className="ui-group-label">Show</span>
                           {(Object.keys(STAT_LABELS) as StatKey[]).map((key) => (
-                            <label key={key} className={styles.settingsCheckbox}>
+                            <label key={key} className="ui-check">
                               <input type="checkbox" checked={visibleStats[key]} onChange={() => toggleStat(key)} />
                               {STAT_LABELS[key]}
                             </label>
                           ))}
                         </div>
                         <div className={styles.settingsSection}>
-                          <span className={styles.settingsLabel}>Sort by</span>
+                          <span className="ui-group-label">Sort by</span>
                           <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as SortKey)}
-                            className={styles.settingsSelect}
                           >
                             <option value="lightness">Lightness</option>
                             <option value="chroma">Chroma</option>
@@ -654,7 +652,7 @@ function PaletteCard({
     <div className={styles.paletteCard}>
       <button
         type="button"
-        className={styles.removeSwatch}
+        className="ui-swatch-remove"
         onClick={() => onRemove(swatch.id)}
         aria-label={`Remove ${swatch.hex}`}
       >

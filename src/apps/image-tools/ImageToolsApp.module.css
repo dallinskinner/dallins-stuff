@@ -4,12 +4,6 @@
   gap: var(--padding);
 }
 
-.app button,
-.app input {
-  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
-  font-size: 14px;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -17,24 +11,8 @@
   gap: var(--padding);
 }
 
-.actions button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.toolActive {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .fileNameInput {
-  box-sizing: border-box;
   width: 12ch;
-  padding: 0.4em;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
 }
 
 .hiddenFileInput {
@@ -218,26 +196,6 @@
   flex: none;
 }
 
-.settingsButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2em;
-  height: 100%;
-}
-
-.gearIcon {
-  width: 14px;
-  height: 14px;
-  background-color: currentColor;
-  mask-image: var(--icon);
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-image: var(--icon);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-}
-
 .settingsMenu {
   position: absolute;
   top: calc(100% + 4px);
@@ -258,52 +216,4 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--padding) / 2);
-}
-
-.settingsLabel {
-  color: var(--foreground);
-  opacity: 0.6;
-  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.settingsCheckbox {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--padding) / 2);
-  color: var(--foreground);
-  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
-  font-size: 13px;
-}
-
-.settingsSelect {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.4em;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
-  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
-  font-size: 13px;
-}
-
-.removeSwatch {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--content-background);
-  color: var(--foreground);
-  font-size: 11px;
-  line-height: 1;
 }

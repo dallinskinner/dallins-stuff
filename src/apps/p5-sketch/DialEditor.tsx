@@ -24,12 +24,12 @@ export function DialEditor({ spec, driver, repeat, onChange }: DialEditorProps) 
   const perCopyRange = range / 2
 
   return (
-    <div className={styles.dial}>
+    <div className={`ui-fields ${styles.dial}`}>
       <div className={styles.dialHeader}>
         <strong>{spec.label}</strong>
         <div className={styles.kinds} role="group" aria-label={`${spec.label} mode`}>
           {KINDS.map(({ id, label }) => (
-            <button key={id} type="button" data-active={driver.kind === id} onClick={() => onChange(convertDriver(driver, id, spec))}>
+            <button key={id} type="button" data-size="sm" aria-pressed={driver.kind === id} onClick={() => onChange(convertDriver(driver, id, spec))}>
               {label}
             </button>
           ))}
@@ -47,8 +47,8 @@ export function DialEditor({ spec, driver, repeat, onChange }: DialEditorProps) 
 
       {driver.kind === 'wave' && (
         <>
-          <label className={styles.slider}>
-            <span>Wave</span>
+          <label className="ui-field">
+            <span className="ui-field-header">Wave</span>
             <select value={driver.wave} onChange={(e) => onChange({ ...driver, wave: e.target.value as Wave })}>
               {WAVES.map((wave) => (
                 <option key={wave} value={wave}>
@@ -57,8 +57,8 @@ export function DialEditor({ spec, driver, repeat, onChange }: DialEditorProps) 
               ))}
             </select>
           </label>
-          <label className={styles.slider}>
-            <span>Easing</span>
+          <label className="ui-field">
+            <span className="ui-field-header">Easing</span>
             <select value={driver.ease} onChange={(e) => onChange({ ...driver, ease: e.target.value as Ease })}>
               {EASES.map(({ id, label }) => (
                 <option key={id} value={id}>
@@ -90,7 +90,6 @@ function ExpressionInput({ source, onChange }: { source: string; onChange: (sour
   return (
     <>
       <input
-        className={styles.expression}
         value={source}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}

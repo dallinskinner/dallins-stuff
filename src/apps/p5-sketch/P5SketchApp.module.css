@@ -4,25 +4,11 @@
   gap: var(--padding);
 }
 
-.app button,
-.app input,
-.app textarea {
-  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
-  font-size: 14px;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--padding);
-}
-
-.fileButton {
-  position: relative;
-  cursor: pointer;
-  font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
-  font-size: 14px;
 }
 
 .hiddenFileInput {
@@ -36,13 +22,11 @@
 }
 
 .titleInput {
-  box-sizing: border-box;
   width: 14ch;
-  padding: 0.4em;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
+}
+
+.nameInput {
+  width: 100%;
 }
 
 .message {
@@ -62,12 +46,6 @@
   min-width: 0;
   box-sizing: border-box;
   height: 420px;
-  padding: 0.6em;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--content-background);
-  color: var(--foreground);
-  resize: vertical;
   tab-size: 2;
   white-space: pre;
   overflow: auto;
@@ -118,16 +96,10 @@
   gap: 4px;
 }
 
-.tabs button[data-active='true'],
-.kinds button[data-active='true'] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .panel {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--padding) / 2);
+  gap: var(--padding);
   flex: 0 0 300px;
   box-sizing: border-box;
   max-width: 100%;
@@ -138,23 +110,6 @@
 
 .panel p {
   margin: 0;
-}
-
-.section {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  padding: 4px 8px;
-}
-
-.section summary {
-  cursor: pointer;
-}
-
-.sectionBody {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 4px;
 }
 
 .shapeList {
@@ -168,13 +123,7 @@
 
 .shapeList li {
   display: flex;
-  gap: 2px;
-  border: 1px solid transparent;
-  border-radius: calc(var(--radius) / 2);
-}
-
-.shapeList li[data-selected='true'] {
-  border-color: var(--accent);
+  gap: 4px;
 }
 
 .shapeName {
@@ -199,14 +148,10 @@
 .inspector {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--padding) / 2);
 }
 
 .dial {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) / 2);
 }
@@ -218,61 +163,10 @@
   gap: 8px;
 }
 
-.slider {
-  display: grid;
-  grid-template-columns: 5.5em 1fr auto;
-  align-items: center;
-  gap: 6px;
-}
-
-.slider select,
-.slider > .colorInput {
-  grid-column: 2 / -1;
-  justify-self: start;
-}
-
-.numberInput {
-  box-sizing: border-box;
-  width: 6ch;
-  padding: 0.2em;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
-}
-
 .sizeInputs {
-  grid-column: 2 / -1;
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.colorInput {
-  width: 36px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: none;
-  cursor: pointer;
-}
-
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-}
-
-.expression {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.4em;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--content-background);
-  color: var(--foreground);
 }
 
 .dialHint,

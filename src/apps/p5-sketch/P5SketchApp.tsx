@@ -312,10 +312,10 @@ export function P5SketchApp() {
     <div className={styles.app}>
       <div className={styles.actions}>
         <div className={styles.tabs} role="group" aria-label="Mode">
-          <button type="button" data-active={tab === 'gui'} onClick={() => setTab('gui')}>
+          <button type="button" aria-pressed={tab === 'gui'} onClick={() => setTab('gui')}>
             GUI
           </button>
-          <button type="button" data-active={tab === 'code'} onClick={() => setTab('code')}>
+          <button type="button" aria-pressed={tab === 'code'} onClick={() => setTab('code')}>
             Code
           </button>
         </div>
@@ -331,7 +331,7 @@ export function P5SketchApp() {
         )}
         <input className={styles.titleInput} value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Sketch name" />
         <button onClick={saveSketch}>Save</button>
-        <label className={styles.fileButton}>
+        <label className="ui-button">
           Load
           <input
             type="file"
