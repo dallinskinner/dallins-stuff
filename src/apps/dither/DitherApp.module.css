@@ -79,6 +79,11 @@
   image-rendering: pixelated;
 }
 
+/* `display: block` above would otherwise beat the hidden attribute and leave the empty canvas taking up room. */
+.canvas[hidden] {
+  display: none;
+}
+
 .empty {
   padding: var(--padding);
   text-align: center;
