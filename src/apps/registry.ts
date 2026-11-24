@@ -46,7 +46,7 @@ export const apps: AppDefinition[] = [
       { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
       { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, windowMaxWidth: 760 },
       { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, windowMaxWidth: 760, accepts: ['palette'] },
-      { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, windowMaxWidth: 760, accepts: ['frame-source', 'palette'] },
+      { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, defaultSize: { width: 900, height: 640 }, accepts: ['frame-source', 'palette'] },
       { id: 'p5-sketch', label: 'p5 Sketch', icon: curveIcon, component: P5SketchApp, windowMaxWidth: '90vw' },
     ],
   },

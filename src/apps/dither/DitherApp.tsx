@@ -5,6 +5,7 @@ import { ALGORITHMS, MATCHINGS, MAX_PALETTE_COLORS, createDitherRenderer } from 
 import type { AnimatedImage } from './animatedImage'
 import { decodeAnimatedImage } from './animatedImage'
 import { parsePreset, serializePreset } from './presetFile'
+import { AppFrame } from '../AppFrame'
 import styles from './DitherApp.module.css'
 
 /** Longest side of the output canvas; larger sources are scaled down to this. */
@@ -297,171 +298,179 @@ export function DitherApp() {
   }
 
   return (
-    <div className={styles.app}>
-      <div className={styles.actions}>
-        <label className="ui-button">
-          Open video or image
-          <input
-            type="file"
-            accept="video/*,image/*"
-            className={styles.hiddenFileInput}
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) loadFile(file)
-              e.target.value = ''
-            }}
-          />
-        </label>
-        {recording ? (
-          <button onClick={stopRecording}>Stop &amp; save</button>
-        ) : (
-          <button onClick={startRecording} disabled={!sourceLabel}>
-            {exportsOnce ? 'Export WebM' : 'Record WebM'}
-          </button>
-        )}
-        {sourceLabel && <span className={styles.sourceLabel}>{sourceLabel}</span>}
-      </div>
-
-      {message && <p className={styles.message}>{message}</p>}
-      {unsupported && <p className={styles.message}>WebGL 2 isn&rsquo;t available, so the dither tool can&rsquo;t run here.</p>}
-
-      <div className={styles.workspace}>
-        <div className={styles.stage}>
-          <canvas ref={canvasRef} className={styles.canvas} hidden={!sourceLabel} />
-          {!sourceLabel && <p className={styles.empty}>Open a video or image, or send a sketch here from the p5 tool.</p>}
-        </div>
-
-        <div className={`ui-fields ${styles.controls}`}>
-          <label className="ui-field">
-            <span className="ui-field-header">Algorithm</span>
-            <select value={params.algorithm} onChange={(e) => patch({ algorithm: e.target.value as DitherParams['algorithm'] })}>
-              {ALGORITHMS.map(({ id, label }) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
+    <AppFrame
+      className={styles.app}
+      rightWidth="240px"
+      top={
+        <>
+          <label className="ui-button">
+            Open video or image
+            <input
+              type="file"
+              accept="video/*,image/*"
+              className={styles.hiddenFileInput}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) loadFile(file)
+                e.target.value = ''
+              }}
+            />
           </label>
-          <label className="ui-field">
-            <span className="ui-field-header">Color matching</span>
-            <select
-              value={params.matching}
-              title={MATCHINGS.find((m) => m.id === params.matching)?.hint}
-              onChange={(e) => patch({ matching: e.target.value as DitherParams['matching'] })}
-            >
-              {MATCHINGS.map(({ id, label, hint }) => (
-                <option key={id} value={id} title={hint}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {exportsOnce && (
+          {recording ? (
+            <button onClick={stopRecording}>Stop &amp; save</button>
+          ) : (
+            <button onClick={startRecording} disabled={!sourceLabel}>
+              {exportsOnce ? 'Export WebM' : 'Record WebM'}
+            </button>
+          )}
+          {sourceLabel && <span className={styles.sourceLabel}>{sourceLabel}</span>}
+        </>
+      }
+      right={
+        <>
+          <div className={`ui-fields ${styles.controls}`}>
             <label className="ui-field">
-              <span className="ui-field-header">Playback speed</span>
-              <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
-                {SPEEDS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}×
+              <span className="ui-field-header">Algorithm</span>
+              <select value={params.algorithm} onChange={(e) => patch({ algorithm: e.target.value as DitherParams['algorithm'] })}>
+                {ALGORITHMS.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
                   </option>
                 ))}
               </select>
             </label>
-          )}
-          <label className="ui-field">
-            <span className="ui-field-header">Output scale</span>
-            <select value={outputScale} disabled={recording} onChange={(e) => setOutputScale(Number(e.target.value))}>
-              {OUTPUT_SCALES.filter((n) => {
-                if (!sourceSize) return n === 1
-                return n === 1 || Math.max(sourceSize.width, sourceSize.height) * sourceSize.fit * n <= MAX_OUTPUT_PIXELS
-              }).map((n) => (
-                <option key={n} value={n}>
-                  {sourceSize ? `${n}× (${Math.round(sourceSize.width * sourceSize.fit * n)}×${Math.round(sourceSize.height * sourceSize.fit * n)})` : `${n}×`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Slider label="Pixel size" value={params.scale} min={1} max={16} step={1} onChange={(scale) => patch({ scale })} />
-          <Slider label="Brightness" value={params.brightness} min={-0.5} max={0.5} step={0.01} onChange={(brightness) => patch({ brightness })} />
-          <Slider label="Contrast" value={params.contrast} min={0.25} max={3} step={0.01} onChange={(contrast) => patch({ contrast })} />
-          <Slider label="Dither strength" value={params.strength} min={0} max={1.5} step={0.01} onChange={(strength) => patch({ strength })} />
-          <div className={styles.actions}>
-            <button
-              onClick={() =>
-                patch({ brightness: DEFAULT_PARAMS.brightness, contrast: DEFAULT_PARAMS.contrast, strength: DEFAULT_PARAMS.strength })
-              }
-              disabled={
-                params.brightness === DEFAULT_PARAMS.brightness &&
-                params.contrast === DEFAULT_PARAMS.contrast &&
-                params.strength === DEFAULT_PARAMS.strength
-              }
-            >
-              Reset adjustments
-            </button>
-          </div>
-
-          <div className="ui-field">
-            <span className="ui-field-header">Palette</span>
-            <select
-              value=""
-              onChange={(e) => {
-                const preset = PALETTES[Number(e.target.value)]
-                if (preset) patch({ palette: preset.colors })
-              }}
-            >
-              <option value="" disabled>
-                Load a preset&hellip;
-              </option>
-              {PALETTES.map(({ label }, i) => (
-                <option key={label} value={i}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <div className={styles.swatches}>
-              {params.palette.map((hex, i) => (
-                <div key={i} className="ui-swatch">
-                  <input type="color" value={hex} onChange={(e) => setColor(i, e.target.value)} aria-label={`Palette color ${i + 1}`} />
-                  <button
-                    className="ui-swatch-remove"
-                    onClick={() => patch({ palette: params.palette.filter((_, j) => j !== i) })}
-                    disabled={params.palette.length <= 1}
-                    aria-label={`Remove color ${i + 1}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() => patch({ palette: [...params.palette, '#808080'] })}
-                disabled={params.palette.length >= MAX_PALETTE_COLORS}
+            <label className="ui-field">
+              <span className="ui-field-header">Color matching</span>
+              <select
+                value={params.matching}
+                title={MATCHINGS.find((m) => m.id === params.matching)?.hint}
+                onChange={(e) => patch({ matching: e.target.value as DitherParams['matching'] })}
               >
-                Add color
+                {MATCHINGS.map(({ id, label, hint }) => (
+                  <option key={id} value={id} title={hint}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {exportsOnce && (
+              <label className="ui-field">
+                <span className="ui-field-header">Playback speed</span>
+                <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+                  {SPEEDS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}×
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className="ui-field">
+              <span className="ui-field-header">Output scale</span>
+              <select value={outputScale} disabled={recording} onChange={(e) => setOutputScale(Number(e.target.value))}>
+                {OUTPUT_SCALES.filter((n) => {
+                  if (!sourceSize) return n === 1
+                  return n === 1 || Math.max(sourceSize.width, sourceSize.height) * sourceSize.fit * n <= MAX_OUTPUT_PIXELS
+                }).map((n) => (
+                  <option key={n} value={n}>
+                    {sourceSize ? `${n}× (${Math.round(sourceSize.width * sourceSize.fit * n)}×${Math.round(sourceSize.height * sourceSize.fit * n)})` : `${n}×`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Slider label="Pixel size" value={params.scale} min={1} max={16} step={1} onChange={(scale) => patch({ scale })} />
+            <Slider label="Brightness" value={params.brightness} min={-0.5} max={0.5} step={0.01} onChange={(brightness) => patch({ brightness })} />
+            <Slider label="Contrast" value={params.contrast} min={0.25} max={3} step={0.01} onChange={(contrast) => patch({ contrast })} />
+            <Slider label="Dither strength" value={params.strength} min={0} max={1.5} step={0.01} onChange={(strength) => patch({ strength })} />
+            <div className={styles.actions}>
+              <button
+                onClick={() =>
+                  patch({ brightness: DEFAULT_PARAMS.brightness, contrast: DEFAULT_PARAMS.contrast, strength: DEFAULT_PARAMS.strength })
+                }
+                disabled={
+                  params.brightness === DEFAULT_PARAMS.brightness &&
+                  params.contrast === DEFAULT_PARAMS.contrast &&
+                  params.strength === DEFAULT_PARAMS.strength
+                }
+              >
+                Reset adjustments
               </button>
             </div>
-          </div>
 
-          <div className={styles.actions}>
-            <button onClick={() => download(new Blob([serializePreset(params)], { type: 'application/json' }), 'dither.ditherpreset.json')}>
-              Save preset
-            </button>
-            <label className="ui-button">
-              Load preset
-              <input
-                type="file"
-                accept="application/json,.json"
-                className={styles.hiddenFileInput}
+            <div className="ui-field">
+              <span className="ui-field-header">Palette</span>
+              <select
+                value=""
                 onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void loadPreset(file)
-                  e.target.value = ''
+                  const preset = PALETTES[Number(e.target.value)]
+                  if (preset) patch({ palette: preset.colors })
                 }}
-              />
-            </label>
+              >
+                <option value="" disabled>
+                  Load a preset&hellip;
+                </option>
+                {PALETTES.map(({ label }, i) => (
+                  <option key={label} value={i}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <div className={styles.swatches}>
+                {params.palette.map((hex, i) => (
+                  <div key={i} className="ui-swatch">
+                    <input type="color" value={hex} onChange={(e) => setColor(i, e.target.value)} aria-label={`Palette color ${i + 1}`} />
+                    <button
+                      className="ui-swatch-remove"
+                      onClick={() => patch({ palette: params.palette.filter((_, j) => j !== i) })}
+                      disabled={params.palette.length <= 1}
+                      aria-label={`Remove color ${i + 1}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => patch({ palette: [...params.palette, '#808080'] })}
+                  disabled={params.palette.length >= MAX_PALETTE_COLORS}
+                >
+                  Add color
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              <button onClick={() => download(new Blob([serializePreset(params)], { type: 'application/json' }), 'dither.ditherpreset.json')}>
+                Save preset
+              </button>
+              <label className="ui-button">
+                Load preset
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className={styles.hiddenFileInput}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) void loadPreset(file)
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+      overlay={
+        (message || unsupported) && (
+          <div className={styles.messages}>
+            {message && <p className={styles.message}>{message}</p>}
+            {unsupported && <p className={styles.message}>WebGL 2 isn&rsquo;t available, so the dither tool can&rsquo;t run here.</p>}
+          </div>
+        )
+      }
+    >
+      <canvas ref={canvasRef} className={styles.canvas} hidden={!sourceLabel} />
+      {!sourceLabel && <p className={styles.empty}>Open a video or image, or send a sketch here from the p5 tool.</p>}
+    </AppFrame>
   )
 }
 
