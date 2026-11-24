@@ -158,7 +158,9 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
         } as React.CSSProperties
       }
     >
+      {/* data-ui-off: the UI standard's scope excludes descendants, so the close button keeps its own icon styling. */}
       <div
+        data-ui-off
         className={isDragging ? `${styles.titleBar} ${styles.dragging}` : styles.titleBar}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -176,7 +178,6 @@ export function Window({ title, icon, maxWidth, zIndex, isFocused, initialOffset
         <span className={styles.title}>{title}</span>
         <button
           type="button"
-          data-ui-off
           onClick={onClose}
           className={styles.close}
           style={{ '--icon': `url(${closeIcon})` } as React.CSSProperties}
