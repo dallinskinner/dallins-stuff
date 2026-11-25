@@ -214,7 +214,15 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
       </ol>
 
       {selected && (
-        <div className={`ui-fields ${styles.inspector}`}>
+        <section className={styles.inspector} aria-label={`${selected.name} settings`}>
+          {/* The header repeats the selected row's tint and icon, so the box reads as that layer's settings. */}
+          <header className={styles.inspectorHeader}>
+            <span className={styles.layerThumb} style={{ color: selected.type === 'camera' ? 'var(--foreground)' : selected.color }}>
+              <span className="ui-icon" style={{ '--icon': `url(${ICONS[selected.type]})` } as React.CSSProperties} />
+            </span>
+            <span className="ui-group-label">{selected.type === 'light' ? LIGHT_KINDS.find((kind) => kind.id === selected.kind)?.label : SHAPE_LABELS[selected.type]} settings</span>
+          </header>
+          <div className={`ui-fields ${styles.inspectorBody}`}>
           <input className={styles.nameInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Layer name" />
           {selected.type === 'light' && (
             <label className="ui-field">
@@ -265,7 +273,8 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
               )
             })}
           </div>
-        </div>
+          </div>
+        </section>
       )}
     </div>
   )

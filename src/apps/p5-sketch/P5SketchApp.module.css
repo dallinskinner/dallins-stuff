@@ -87,9 +87,26 @@
   margin: 0;
 }
 
+/* The selected layer's settings live in one box, headed like the selected row so the two read as a pair. */
 .inspector {
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius);
+}
+
+.inspectorHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 4px;
+  border-bottom: 1px solid var(--border);
+  border-radius: calc(var(--ui-radius) - 1px) calc(var(--ui-radius) - 1px) 0 0;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.inspectorBody {
   display: flex;
   flex-direction: column;
+  padding: var(--padding);
 }
 
 /* The layers read like a layers panel: one bordered list, rows touching, each a thumbnail, a name and a menu. */
