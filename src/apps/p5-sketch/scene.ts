@@ -47,18 +47,37 @@ export interface ExprDriver {
 
 export type Driver = ConstDriver | WaveDriver | ExprDriver
 
-export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere'
-export const SHAPE_LABELS: Record<ShapeType, string> = { circle: 'Circle', rect: 'Rectangle', line: 'Line', box: 'Box', sphere: 'Sphere' }
+export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere' | 'camera' | 'light'
+export const SHAPE_LABELS: Record<ShapeType, string> = {
+  circle: 'Circle',
+  rect: 'Rectangle',
+  line: 'Line',
+  box: 'Box',
+  sphere: 'Sphere',
+  camera: 'Camera',
+  light: 'Light',
+}
 
-/** Shapes that only exist in a 3D scene. */
-export const SHAPES_3D: ShapeType[] = ['box', 'sphere']
-export const is3D = (type: ShapeType) => SHAPES_3D.includes(type)
+export type LightKind = 'ambient' | 'directional' | 'point'
+export const LIGHT_KINDS: { id: LightKind; label: string }[] = [
+  { id: 'directional', label: 'Directional light' },
+  { id: 'point', label: 'Point light' },
+  { id: 'ambient', label: 'Ambient light' },
+]
+const LIGHT_LABELS = Object.fromEntries(LIGHT_KINDS.map((k) => [k.id, k.label])) as Record<LightKind, string>
+
+/** Things that aren't drawn: the camera and lights shape how the 3D scene is seen, and sit in the layers list like shapes. */
+export const isSceneObject = (type: ShapeType) => type === 'camera' || type === 'light'
+/** Everything that only exists in a 3D scene. */
+export const is3D = (type: ShapeType) => type === 'box' || type === 'sphere' || isSceneObject(type)
 
 export type SceneMode = '2d' | '3d'
 
 export interface Shape {
   id: number
   type: ShapeType
+  /** Which kind of light, for `type: 'light'`. */
+  kind?: LightKind
   name: string
   color: string
   /** Stroke instead of fill. Lines are always strokes. */
@@ -70,8 +89,6 @@ export interface Shape {
 export interface Scene {
   /** A 3D scene draws on a WEBGL canvas: x and y stay in canvas pixels, and 3D shapes add z and rotation on every axis. */
   mode: SceneMode
-  /** 3D only: light the shapes (otherwise they're flat-colored). */
-  lights: boolean
   width: number
   height: number
   background: string
@@ -98,7 +115,7 @@ export function usesWeight(shape: Pick<Shape, 'type' | 'outline'>): boolean {
 }
 
 /** The dials a shape has, with slider ranges that follow the canvas size. */
-export function propSpecs(shape: Pick<Shape, 'type' | 'outline'>, scene: Pick<Scene, 'width' | 'height'>): PropSpec[] {
+export function propSpecs(shape: Pick<Shape, 'type' | 'outline' | 'kind'>, scene: Pick<Scene, 'width' | 'height'>): PropSpec[] {
   const { width, height } = scene
   const big = Math.max(width, height)
   const x: PropSpec = { key: 'x', label: 'X', min: 0, max: width, step: 1 }
@@ -106,6 +123,25 @@ export function propSpecs(shape: Pick<Shape, 'type' | 'outline'>, scene: Pick<Sc
   const rotation: PropSpec = { key: 'rotation', label: 'Rotation', min: -360, max: 360, step: 1 }
   const opacity: PropSpec = { key: 'opacity', label: 'Opacity', min: 0, max: 1, step: 0.01 }
   const weight: PropSpec = { key: 'weight', label: 'Line weight', min: 0, max: 40, step: 0.5 }
+  if (shape.type === 'camera') {
+    const look = (key: string, label: string, min: number, max: number): PropSpec => ({ key, label, min, max, step: 1 })
+    return [
+      { key: 'x', label: 'X', min: -width, max: width * 2, step: 1 },
+      { key: 'y', label: 'Y', min: -height, max: height * 2, step: 1 },
+      { key: 'z', label: 'Z', min: -big * 2, max: big * 3, step: 1 },
+      look('lookX', 'Look at X', 0, width),
+      look('lookY', 'Look at Y', 0, height),
+      look('lookZ', 'Look at Z', -big, big),
+      { key: 'fov', label: 'Field of view', min: 10, max: 150, step: 1 },
+    ]
+  }
+  if (shape.type === 'light') {
+    const intensity: PropSpec = { key: 'intensity', label: 'Intensity', min: 0, max: 1, step: 0.01 }
+    const dir = (key: string, label: string): PropSpec => ({ key, label, min: -1, max: 1, step: 0.01 })
+    if (shape.kind === 'ambient') return [intensity]
+    if (shape.kind === 'point') return [x, y, { key: 'z', label: 'Z', min: -big, max: big, step: 1 }, intensity]
+    return [dir('dirX', 'Direction X'), dir('dirY', 'Direction Y'), dir('dirZ', 'Direction Z'), intensity]
+  }
   const z: PropSpec = { key: 'z', label: 'Z', min: -big, max: big, step: 1 }
   const turns: PropSpec[] = [
     { key: 'rotX', label: 'Rotate X', min: -360, max: 360, step: 1 },
@@ -131,30 +167,60 @@ export function constDriver(value: number): ConstDriver {
   return { kind: 'const', value, step: 0 }
 }
 
-/** Dials for a new shape placed at (x, y). */
-export function defaultProps(type: ShapeType, x: number, y: number): Record<string, Driver> {
+/** Dials for a new shape placed at (x, y); for the camera and lights, (x, y) is the middle of the canvas. */
+export function defaultProps(type: ShapeType, x: number, y: number, kind: LightKind = 'directional'): Record<string, Driver> {
   const common = { x: constDriver(x), y: constDriver(y), opacity: constDriver(1), weight: constDriver(1) }
   const turns = { rotX: constDriver(0), rotY: constDriver(0), rotZ: constDriver(0) }
   if (type === 'circle') return { ...common, weight: constDriver(4), size: constDriver(80) }
   if (type === 'rect') return { ...common, weight: constDriver(4), w: constDriver(100), h: constDriver(60), rotation: constDriver(0) }
   if (type === 'box') return { ...common, z: constDriver(0), w: constDriver(100), h: constDriver(100), d: constDriver(100), ...turns }
   if (type === 'sphere') return { ...common, z: constDriver(0), size: constDriver(100), ...turns }
+  if (type === 'camera') {
+    // p5's own default view: straight on at the distance where one canvas pixel is one world unit at z = 0.
+    return {
+      x: constDriver(x),
+      y: constDriver(y),
+      z: constDriver(Math.round(y * Math.sqrt(3))),
+      lookX: constDriver(x),
+      lookY: constDriver(y),
+      lookZ: constDriver(0),
+      fov: constDriver(60),
+    }
+  }
+  if (type === 'light') {
+    if (kind === 'ambient') return { intensity: constDriver(0.45) }
+    if (kind === 'point') return { x: constDriver(Math.round(x - y / 2)), y: constDriver(Math.round(y / 2)), z: constDriver(Math.round(y / 2)), intensity: constDriver(1) }
+    return { dirX: constDriver(0.4), dirY: constDriver(0.6), dirZ: constDriver(-0.8), intensity: constDriver(1) }
+  }
   return { ...common, weight: constDriver(4), length: constDriver(120), rotation: constDriver(0) }
 }
 
 let nextShapeId = 1
 
-export function createShape(type: ShapeType, x: number, y: number, existing: Shape[]): Shape {
-  const count = existing.filter((shape) => shape.type === type).length + 1
+export function createShape(type: ShapeType, x: number, y: number, existing: Shape[], kind: LightKind = 'directional'): Shape {
+  const lightKind = type === 'light' ? kind : undefined
+  const label = lightKind ? LIGHT_LABELS[lightKind] : SHAPE_LABELS[type]
+  const count = existing.filter((shape) => shape.type === type && shape.kind === lightKind).length + 1
   return {
     id: nextShapeId++,
     type,
-    name: `${SHAPE_LABELS[type]} ${count}`,
+    ...(lightKind ? { kind: lightKind } : {}),
+    // The camera is one-of-a-kind, so it needs no number.
+    name: type === 'camera' ? label : `${label} ${count}`,
     color: '#ffffff',
     outline: false,
     repeat: 1,
-    props: defaultProps(type, Math.round(x), Math.round(y)),
+    props: defaultProps(type, Math.round(x), Math.round(y), kind),
   }
+}
+
+/** The ambient and directional light a new 3D scene starts with, so shapes are shaded from the first. */
+export function defaultLights(scene: Pick<Scene, 'width' | 'height' | 'shapes'>): Shape[] {
+  const x = scene.width / 2
+  const y = scene.height / 2
+  const ambient = createShape('light', x, y, scene.shapes, 'ambient')
+  const directional = createShape('light', x, y, [...scene.shapes, ambient], 'directional')
+  return [ambient, directional]
 }
 
 /** A copy with a fresh id, nudged so it doesn't sit exactly on the original. */
@@ -196,7 +262,7 @@ export function convertDriver(driver: Driver, kind: DriverKind, spec: PropSpec):
 
 /** A new sketch starts as a blank canvas. */
 export function createDefaultScene(): Scene {
-  return { mode: '2d', lights: true, width: 400, height: 400, background: '#141414', loop: 6, shapes: [] }
+  return { mode: '2d', width: 400, height: 400, background: '#141414', loop: 6, shapes: [] }
 }
 
 // --- Loading from a file: coerce whatever's there into something safe to generate code from. ---
@@ -229,33 +295,41 @@ function sanitizeDriver(raw: unknown, fallback: Driver): Driver {
 export function sanitizeScene(raw: unknown): Scene {
   if (!isRecord(raw) || !Array.isArray(raw.shapes)) throw new Error('Sketch file has no scene.')
   const clampCanvas = (value: unknown) => Math.min(MAX_CANVAS, Math.max(MIN_CANVAS, Math.round(finite(value, 400))))
+  const width = clampCanvas(raw.width)
+  const height = clampCanvas(raw.height)
   const shapes: Shape[] = []
   for (const entry of raw.shapes) {
     if (!isRecord(entry) || typeof entry.type !== 'string' || !(entry.type in SHAPE_LABELS)) continue
     const type = entry.type as ShapeType
-    const defaults = defaultProps(type, 0, 0)
+    if (type === 'camera' && shapes.some((shape) => shape.type === 'camera')) continue
+    const kind: LightKind | undefined =
+      type === 'light' ? (LIGHT_KINDS.some((k) => k.id === entry.kind) ? (entry.kind as LightKind) : 'directional') : undefined
+    const defaults = defaultProps(type, width / 2, height / 2, kind)
     const given = isRecord(entry.props) ? entry.props : {}
     const props: Record<string, Driver> = {}
     for (const key of Object.keys(defaults)) props[key] = sanitizeDriver(given[key], defaults[key])
     shapes.push({
       id: nextShapeId++,
       type,
-      name: typeof entry.name === 'string' ? entry.name : SHAPE_LABELS[type],
+      ...(kind ? { kind } : {}),
+      name: typeof entry.name === 'string' ? entry.name : kind ? LIGHT_LABELS[kind] : SHAPE_LABELS[type],
       color: typeof entry.color === 'string' && HEX.test(entry.color) ? entry.color : '#ffffff',
       outline: entry.outline === true,
-      repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(finite(entry.repeat, 1)))),
+      repeat: isSceneObject(type) ? 1 : Math.min(MAX_REPEAT, Math.max(1, Math.round(finite(entry.repeat, 1)))),
       props,
     })
   }
   // A scene is 3D only if it says so; older files have no mode. Any 3D shape in a 2D file would be undrawable, so it forces 3D.
   const mode: SceneMode = raw.mode === '3d' || shapes.some((shape) => is3D(shape.type)) ? '3d' : '2d'
-  return {
+  const scene: Scene = {
     mode,
-    lights: raw.lights !== false,
-    width: clampCanvas(raw.width),
-    height: clampCanvas(raw.height),
+    width,
+    height,
     background: typeof raw.background === 'string' && HEX.test(raw.background) ? raw.background : '#141414',
     loop: Math.min(120, Math.max(0.5, finite(raw.loop, 6))),
     shapes,
   }
+  // Early 3D files lit the scene with a built-in pair of lights; those are now real objects, so a file with none gets them.
+  if (mode === '3d' && raw.lights !== false && !shapes.some((shape) => shape.type === 'light')) scene.shapes = [...shapes, ...defaultLights(scene)]
+  return scene
 }

@@ -1,12 +1,15 @@
 import { DialEditor } from './DialEditor'
 import type { Driver, Scene, Shape, ShapeType } from './scene'
-import { MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, duplicateShape, is3D, propSpecs } from './scene'
+import type { LightKind } from './scene'
+import { LIGHT_KINDS, MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, defaultLights, defaultProps, duplicateShape, is3D, isSceneObject, propSpecs } from './scene'
 import { Slider } from './Slider'
 import circleIcon from '../../assets/icons/circle.png'
 import squareIcon from '../../assets/icons/square.png'
 import lineIcon from '../../assets/icons/line.png'
 import boxIcon from '../../assets/icons/box.png'
 import sphereIcon from '../../assets/icons/sphere.png'
+import cameraIcon from '../../assets/icons/camera.png'
+import lightIcon from '../../assets/icons/light.png'
 import styles from './P5SketchApp.module.css'
 
 const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
@@ -15,6 +18,8 @@ const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
   { type: 'line', icon: lineIcon },
   { type: 'box', icon: boxIcon },
   { type: 'sphere', icon: sphereIcon },
+  { type: 'camera', icon: cameraIcon },
+  { type: 'light', icon: lightIcon },
 ]
 
 interface SceneToolsProps {
@@ -25,8 +30,10 @@ interface SceneToolsProps {
 
 /** The add-a-shape tool column. Each tool adds its shape in the middle of the canvas, ready to be dragged or dialed in. */
 export function SceneTools({ scene, onSelect, onScene }: SceneToolsProps) {
+  const hasCamera = scene.shapes.some((shape) => shape.type === 'camera')
+
   function add(type: ShapeType) {
-    const shape = createShape(type, scene.width / 2, scene.height / 2, scene.shapes)
+    const shape = createShape(type, scene.width / 2, scene.height / 2, scene.shapes, 'point')
     onScene((prev) => ({ ...prev, shapes: [...prev.shapes, shape] }))
     onSelect(shape.id)
   }
@@ -39,7 +46,8 @@ export function SceneTools({ scene, onSelect, onScene }: SceneToolsProps) {
           type="button"
           data-variant="tool"
           aria-label={`Add ${SHAPE_LABELS[type].toLowerCase()}`}
-          title={`Add ${SHAPE_LABELS[type].toLowerCase()}`}
+          title={type === 'camera' && hasCamera ? 'The scene already has a camera' : `Add ${SHAPE_LABELS[type].toLowerCase()}`}
+          disabled={type === 'camera' && hasCamera}
           onClick={() => add(type)}
         >
           <span className="ui-icon" style={{ '--icon': `url(${icon})` } as React.CSSProperties} />
@@ -87,6 +95,18 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
     onSelect(copy.id)
   }
 
+  /** Each kind of light has different dials, so changing the type resets them (the color stays). */
+  function changeLightKind(shape: Shape, kind: LightKind) {
+    const labelOf = (k?: LightKind) => LIGHT_KINDS.find((entry) => entry.id === k)?.label ?? ''
+    updateShape(shape.id, (current) => ({
+      ...current,
+      kind,
+      // Follows the type in the name too, unless the name was changed by hand.
+      name: current.name.startsWith(labelOf(current.kind)) ? current.name.replace(labelOf(current.kind), labelOf(kind)) : current.name,
+      props: defaultProps('light', scene.width / 2, scene.height / 2, kind),
+    }))
+  }
+
   function remove(id: number) {
     onScene((prev) => ({ ...prev, shapes: prev.shapes.filter((shape) => shape.id !== id) }))
     if (selectedId === id) onSelect(null)
@@ -105,19 +125,24 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
         <div className="ui-details-body">
           <label className="ui-field">
             <span className="ui-field-header">Mode</span>
-            <select value={scene.mode} onChange={(e) => onScene((prev) => ({ ...prev, mode: e.target.value as Scene['mode'] }))}>
+            <select
+              value={scene.mode}
+              onChange={(e) => {
+                const mode = e.target.value as Scene['mode']
+                // A new 3D scene starts with a pair of lights, so shapes are shaded from the first.
+                onScene((prev) => ({
+                  ...prev,
+                  mode,
+                  shapes: mode === '3d' && !prev.shapes.some((shape) => shape.type === 'light') ? [...prev.shapes, ...defaultLights(prev)] : prev.shapes,
+                }))
+              }}
+            >
               <option value="2d" disabled={has3DShapes}>
                 2D
               </option>
               <option value="3d">3D</option>
             </select>
           </label>
-          {scene.mode === '3d' && (
-            <label className="ui-check">
-              <input type="checkbox" checked={scene.lights} onChange={(e) => onScene((prev) => ({ ...prev, lights: e.target.checked }))} />
-              Lights
-            </label>
-          )}
           <label className="ui-field">
             <span className="ui-field-header">Size</span>
             <span className={styles.sizeInputs}>
@@ -138,7 +163,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
         {[...scene.shapes].reverse().map((shape) => (
           <li key={shape.id}>
             <button type="button" className={styles.shapeName} aria-pressed={shape.id === selectedId} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
-              <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />
+              {shape.type !== 'camera' && <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />}
               {shape.name}
               {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
             </button>
@@ -148,7 +173,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
             <button type="button" onClick={() => move(shape.id, -1)} aria-label={`Move ${shape.name} down`} title="Move down">
               ↓
             </button>
-            <button type="button" onClick={() => duplicate(shape)} aria-label={`Duplicate ${shape.name}`} title="Duplicate">
+            <button type="button" onClick={() => duplicate(shape)} disabled={shape.type === 'camera'} aria-label={`Duplicate ${shape.name}`} title={shape.type === 'camera' ? 'A scene has one camera' : 'Duplicate'}>
               ⧉
             </button>
             <button type="button" onClick={() => remove(shape.id)} aria-label={`Delete ${shape.name}`} title="Delete">
@@ -161,17 +186,33 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
       {selected && (
         <div className={`ui-fields ${styles.inspector}`}>
           <input className={styles.nameInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Shape name" />
-          <label className="ui-field">
-            <span className="ui-field-header">Color</span>
-            <input type="color" value={selected.color} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, color: e.target.value }))} />
-          </label>
-          {selected.type !== 'line' && (
+          {selected.type === 'light' && (
+            <label className="ui-field">
+              <span className="ui-field-header">Type</span>
+              <select value={selected.kind} onChange={(e) => changeLightKind(selected, e.target.value as LightKind)}>
+                {LIGHT_KINDS.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {selected.type !== 'camera' && (
+            <label className="ui-field">
+              <span className="ui-field-header">Color</span>
+              <input type="color" value={selected.color} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, color: e.target.value }))} />
+            </label>
+          )}
+          {selected.type !== 'line' && !isSceneObject(selected.type) && (
             <label className="ui-check">
               <input type="checkbox" checked={selected.outline} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, outline: e.target.checked }))} />
               {is3D(selected.type) ? 'Wireframe' : 'Outline only'}
             </label>
           )}
-          <Slider label="Copies" value={selected.repeat} min={1} max={32} step={1} onChange={(repeat) => updateShape(selected.id, (s) => ({ ...s, repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(repeat))) }))} />
+          {!isSceneObject(selected.type) && (
+            <Slider label="Copies" value={selected.repeat} min={1} max={32} step={1} onChange={(repeat) => updateShape(selected.id, (s) => ({ ...s, repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(repeat))) }))} />
+          )}
           {propSpecs(selected, scene).map((spec) => (
             <DialEditor key={spec.key} spec={spec} driver={selected.props[spec.key]} repeat={selected.repeat} onChange={(driver) => setProp(selected, spec.key, driver)} />
           ))}

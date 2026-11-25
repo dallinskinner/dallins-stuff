@@ -1,5 +1,5 @@
 import type { Driver, Scene, Shape } from './scene'
-import { propSpecs } from './scene'
+import { isSceneObject, propSpecs } from './scene'
 
 /** Wraps an expression for embedding. A trailing line break keeps a `//` comment from swallowing the bracket. */
 function wrapExpression(source: string): string {
@@ -80,10 +80,15 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
   lines.push('  const t = millis() / 1000 // seconds since the sketch started')
   lines.push(`  const p = (t / ${live ? 'P.loop' : num(scene.loop)}) % 1 // 0 to 1 through the loop`)
   lines.push(`  background(${live ? 'P.bg' : JSON.stringify(scene.background)})`)
-  // Lights are set every frame; without them 3D shapes are flat-colored. Directional light comes from the upper left, in front.
-  if (is3d && scene.lights) lines.push('  ambientLight(110)', '  directionalLight(255, 255, 255, 0.4, 0.6, -0.8)')
-
+  // The camera and lights are set up first each frame (lights after the camera, since a light's position is in view space);
+  // the shapes then draw into that view. `k` stays the shape's index in the scene, which is what the live params are keyed by.
+  if (is3d) {
+    const objects = scene.shapes.flatMap((shape, k) => (isSceneObject(shape.type) ? [{ shape, k }] : []))
+    for (const { shape, k } of objects.filter(({ shape }) => shape.type === 'camera')) lines.push('', ...cameraBlock(scene, shape, k, live))
+    for (const { shape, k } of objects.filter(({ shape }) => shape.type === 'light')) lines.push('', ...lightBlock(scene, shape, k, live))
+  }
   scene.shapes.forEach((shape, k) => {
+    if (isSceneObject(shape.type)) return
     lines.push('', ...shapeBlock(scene, shape, k, live))
   })
 
@@ -110,6 +115,34 @@ function driverExpression(k: number, key: string, driver: Driver, live: boolean)
   const raw = `W.${driver.wave}(${ref('cycles', driver.cycles)} * p + ${ref('phase', driver.phase)}${phaseStep})`
   const wave = driver.ease === 'none' ? raw : `E.${driver.ease}(${raw})`
   return `${ref('center', driver.center)} + ${ref('amp', driver.amp)} * ${wave}${step}`
+}
+
+/** The values a camera or light reads, declared in a block of their own (they can use t, p, i and n like any dial; i is always 0 and n 1). */
+function objectBlock(scene: Scene, shape: Shape, k: number, live: boolean, body: string[]): string[] {
+  const out = [`  // ${shape.name.replace(/[\r\n]+/g, ' ')}`, '  {', '    const i = 0', '    const n = 1']
+  for (const { key } of propSpecs(shape, scene)) out.push(`    const ${key} = ${driverExpression(k, key, shape.props[key], live)}`)
+  out.push(...body, '  }')
+  return out
+}
+
+/** Looks from (x, y, z) at the look-at point, with the field of view as a dial. Positions are in canvas pixels, like the shapes'. */
+function cameraBlock(scene: Scene, shape: Shape, k: number, live: boolean): string[] {
+  return objectBlock(scene, shape, k, live, [
+    '    camera(x - width / 2, y - height / 2, z, lookX - width / 2, lookY - height / 2, lookZ, 0, 1, 0)',
+    '    perspective(radians(fov), width / height, 10, 100000)',
+  ])
+}
+
+function lightBlock(scene: Scene, shape: Shape, k: number, live: boolean): string[] {
+  const color = live ? `P.s[${k}].color` : JSON.stringify(shape.color)
+  // The light's color scaled by its intensity.
+  const rgb = ['    const col = color(' + color + ')', '    const r = red(col) * intensity', '    const g = green(col) * intensity', '    const b = blue(col) * intensity']
+  if (shape.kind === 'ambient') return objectBlock(scene, shape, k, live, [...rgb, '    ambientLight(r, g, b)'])
+  if (shape.kind === 'point') {
+    const marker = live ? [`    if (P.guides && P.sel === ${k}) {`, '      push()', '      translate(x - width / 2, y - height / 2, z)', '      noFill()', '      stroke(255, 60, 200)', '      strokeWeight(1.5)', '      sphere(8)', '      pop()', '    }'] : []
+    return objectBlock(scene, shape, k, live, [...rgb, '    pointLight(r, g, b, x - width / 2, y - height / 2, z)', ...marker])
+  }
+  return objectBlock(scene, shape, k, live, [...rgb, '    directionalLight(r, g, b, dirX, dirY, dirZ)'])
 }
 
 /** A 3D scene's shape: WEBGL puts the origin at the middle of the canvas, so x and y are shifted to stay in canvas pixels. */
