@@ -44,7 +44,7 @@ export const apps: AppDefinition[] = [
     children: [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 760 },
       { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
-      { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, windowMaxWidth: 760 },
+      { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, defaultSize: { width: 900, height: 640 } },
       { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, defaultSize: { width: 800, height: 560 }, accepts: ['palette'] },
       { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, defaultSize: { width: 900, height: 640 }, accepts: ['frame-source', 'palette'] },
       { id: 'p5-sketch', label: 'p5 Sketch', icon: curveIcon, component: P5SketchApp, windowMaxWidth: '90vw' },
