@@ -54,6 +54,8 @@ const BRIDGE = `
     } else if (data.type === 'params') {
       // GUI sketches read their numbers from a global P, so dials change them without a restart.
       window.P = data.params;
+      // A paused sketch isn't drawing, so a changed dial would not show; draw one frame (a playing one picks it up by itself).
+      if (!clock.playing && p5.instance) p5.instance.redraw();
     }
   });
 
