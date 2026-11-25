@@ -150,6 +150,10 @@ export function DitherApp() {
   function applySource(element: Source['element'], width: number, height: number, kind: Source['kind'], label: string, url?: string, animation?: AnimatedImage) {
     const previous = sourceRef.current
     if (previous?.element instanceof HTMLVideoElement) {
+      // Detach the handlers first: dropping the source below makes the old element fire an error, which would
+      // otherwise show up as a message about a file that's already been replaced.
+      previous.element.onerror = null
+      previous.element.onloadedmetadata = null
       previous.element.pause()
       previous.element.srcObject = null
     }
@@ -166,6 +170,7 @@ export function DitherApp() {
   }
 
   function loadVideo(video: HTMLVideoElement, kind: Source['kind'], label: string, url?: string) {
+    const loadId = loadIdRef.current
     video.muted = true
     video.loop = kind === 'file-video'
     video.playsInline = true
@@ -173,7 +178,10 @@ export function DitherApp() {
       applySource(video, video.videoWidth, video.videoHeight, kind, label, url)
       void video.play()
     }
-    video.onerror = () => setMessage(`Couldn't play ${label}.`)
+    // Ignore errors from a load that a newer file or source has since replaced.
+    video.onerror = () => {
+      if (loadId === loadIdRef.current) setMessage(`Couldn't play ${label}.`)
+    }
   }
 
   function loadFile(file: File) {
