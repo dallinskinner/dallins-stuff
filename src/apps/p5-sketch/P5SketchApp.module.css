@@ -78,7 +78,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 4px;
+  /* The inset gives focus rings room inside the scroll area, which would clip them; the negative margin keeps the content where it was. */
+  margin: -4px;
+  padding: 4px;
 }
 
 .panel p {
