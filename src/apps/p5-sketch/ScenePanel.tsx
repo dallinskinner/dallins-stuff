@@ -212,7 +212,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
               <span className={styles.layerName}>{shape.name}</span>
               {shape.repeat > 1 && <small className={styles.layerCount}>×{shape.repeat}</small>}
             </button>
-            <Dropdown label={`${shape.name} actions`} icon={kebabIcon} align="right">
+            <Dropdown label={`${shape.name} actions`} icon={kebabIcon} align="right" floating>
               <button type="button" onClick={() => move(shape.id, 1)}>
                 Move up
               </button>

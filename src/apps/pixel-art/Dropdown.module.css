@@ -31,8 +31,8 @@
   white-space: nowrap;
 }
 
-/* Menu items are flat rows, not bordered buttons. `.dropdown` is there to out-rank the standard button rules. */
-.dropdown .popover[data-variant='menu'] > button {
+/* Menu items are flat rows, not bordered buttons. The doubled class out-ranks the standard button rules (and works when the popover is portaled out of `.dropdown`). */
+.popover.popover[data-variant='menu'] > button {
   width: 100%;
   border: none;
   border-radius: 0;
@@ -40,6 +40,17 @@
   text-align: left;
 }
 
-.dropdown .popover[data-variant='menu'] > button:hover:not(:disabled) {
+.popover.popover[data-variant='menu'] > button:hover:not(:disabled) {
   background-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+/* A floating popover sits on the page itself, placed by the component (it's measured and set before paint). */
+.popover[data-floating] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  z-index: 10000;
+  min-width: 0;
+  margin: 0;
 }
