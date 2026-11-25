@@ -192,7 +192,8 @@ function shapeBlock3D(scene: Scene, shape: Shape, k: number, live: boolean): str
     if (shape.type === 'ellipsoid') return `ellipsoid(${plus('w / 2', grow / 2)}, ${plus('h / 2', grow / 2)}, ${plus('d / 2', grow / 2)})`
     if (shape.type === 'plane') return `plane(${plus('w')}, ${plus('h')})`
     // p5 normalizes a model so its longest side is 200 units, so the size dial (that side's length) scales it by size / 200; the guide scales that again, relative.
-    if (shape.type === 'model') return `${grow === 0 ? 'scale(size / 200)' : `scale((size + ${grow}) / max(size, 1))`}; model(model${k})`
+    // OBJ files are y-up but p5's canvas is y-down, so the model's y is flipped to arrive upright; the layer's own rotations are applied before that.
+    if (shape.type === 'model') return `${grow === 0 ? 'scale(size / 200, -size / 200, size / 200)' : `scale((size + ${grow}) / max(size, 1))`}; model(model${k})`
     return 'line(-length / 2, 0, length / 2, 0)'
   }
   out.push(`    ${geometry(0)}`)
