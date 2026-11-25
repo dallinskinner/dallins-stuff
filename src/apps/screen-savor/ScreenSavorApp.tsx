@@ -114,15 +114,6 @@ export function ScreenSavorApp() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [shuffleOnLoop, setShuffleOnLoop] = useState(false)
 
-  // Live labels track the slider while dragging; the committed values above
-  // (which drive the grid/font-size and therefore the window's size) only
-  // update on release, so the window doesn't resize mid-drag.
-  const [widthLabel, setWidthLabel] = useState(gridWidth)
-  const [heightLabel, setHeightLabel] = useState(gridHeight)
-  const [cellSizeLabel, setCellSizeLabel] = useState(cellSize)
-  const [lineHeightLabel, setLineHeightLabel] = useState(lineHeight)
-  const [letterSpacingLabel, setLetterSpacingLabel] = useState(letterSpacing)
-
   const noise2D = useMemo(() => makeNoise2D(mulberry32(hashSeed(seed))), [seed])
   const noise3D = useMemo(() => makeNoise3D(mulberry32(hashSeed(seed))), [seed])
 
@@ -294,33 +285,29 @@ export function ScreenSavorApp() {
               <label className="ui-field">
                 <span className="ui-field-header">
                   Width
-                  <output>{widthLabel}</output>
+                  <output>{gridWidth}</output>
                 </span>
                 <input
                   type="range"
                   min={WIDTH_MIN}
                   max={WIDTH_MAX}
                   step={5}
-                  defaultValue={gridWidth}
-                  onInput={(e) => setWidthLabel(Number(e.currentTarget.value))}
-                  onPointerUp={(e) => setGridWidth(Number(e.currentTarget.value))}
-                  onKeyUp={(e) => setGridWidth(Number(e.currentTarget.value))}
+                  value={gridWidth}
+                  onChange={(e) => setGridWidth(Number(e.target.value))}
                 />
               </label>
               <label className="ui-field">
                 <span className="ui-field-header">
                   Height
-                  <output>{heightLabel}</output>
+                  <output>{gridHeight}</output>
                 </span>
                 <input
                   type="range"
                   min={HEIGHT_MIN}
                   max={HEIGHT_MAX}
                   step={5}
-                  defaultValue={gridHeight}
-                  onInput={(e) => setHeightLabel(Number(e.currentTarget.value))}
-                  onPointerUp={(e) => setGridHeight(Number(e.currentTarget.value))}
-                  onKeyUp={(e) => setGridHeight(Number(e.currentTarget.value))}
+                  value={gridHeight}
+                  onChange={(e) => setGridHeight(Number(e.target.value))}
                 />
               </label>
               <label className="ui-field">
@@ -346,17 +333,15 @@ export function ScreenSavorApp() {
               <label className="ui-field">
                 <span className="ui-field-header">
                   Cell size
-                  <output>{cellSizeLabel}px</output>
+                  <output>{cellSize}px</output>
                 </span>
                 <input
                   type="range"
                   min={CELL_MIN}
                   max={CELL_MAX}
                   step={1}
-                  defaultValue={cellSize}
-                  onInput={(e) => setCellSizeLabel(Number(e.currentTarget.value))}
-                  onPointerUp={(e) => setCellSize(Number(e.currentTarget.value))}
-                  onKeyUp={(e) => setCellSize(Number(e.currentTarget.value))}
+                  value={cellSize}
+                  onChange={(e) => setCellSize(Number(e.target.value))}
                 />
               </label>
               <label className="ui-field">
@@ -376,33 +361,29 @@ export function ScreenSavorApp() {
               <label className="ui-field">
                 <span className="ui-field-header">
                   Line height
-                  <output>{lineHeightLabel.toFixed(2)}</output>
+                  <output>{lineHeight.toFixed(2)}</output>
                 </span>
                 <input
                   type="range"
                   min={LINE_HEIGHT_MIN}
                   max={LINE_HEIGHT_MAX}
                   step={0.05}
-                  defaultValue={lineHeight}
-                  onInput={(e) => setLineHeightLabel(Number(e.currentTarget.value))}
-                  onPointerUp={(e) => setLineHeight(Number(e.currentTarget.value))}
-                  onKeyUp={(e) => setLineHeight(Number(e.currentTarget.value))}
+                  value={lineHeight}
+                  onChange={(e) => setLineHeight(Number(e.target.value))}
                 />
               </label>
               <label className="ui-field">
                 <span className="ui-field-header">
                   Letter spacing
-                  <output>{letterSpacingLabel.toFixed(2)}em</output>
+                  <output>{letterSpacing.toFixed(2)}em</output>
                 </span>
                 <input
                   type="range"
                   min={LETTER_SPACING_MIN}
                   max={LETTER_SPACING_MAX}
                   step={0.01}
-                  defaultValue={letterSpacing}
-                  onInput={(e) => setLetterSpacingLabel(Number(e.currentTarget.value))}
-                  onPointerUp={(e) => setLetterSpacing(Number(e.currentTarget.value))}
-                  onKeyUp={(e) => setLetterSpacing(Number(e.currentTarget.value))}
+                  value={letterSpacing}
+                  onChange={(e) => setLetterSpacing(Number(e.target.value))}
                 />
               </label>
             </div>
