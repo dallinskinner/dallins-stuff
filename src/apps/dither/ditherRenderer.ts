@@ -1,13 +1,20 @@
 import { rgbToOklab } from '../image-tools/colorConversion'
 
-export type Algorithm = 'bayer2' | 'bayer4' | 'bayer8' | 'noise' | 'threshold'
+export type Algorithm = 'bayer2' | 'bayer4' | 'bayer8' | 'bayer16' | 'blue' | 'noise' | 'halftone' | 'lines' | 'threshold'
 
-export const ALGORITHMS: { id: Algorithm; label: string }[] = [
-  { id: 'bayer2', label: 'Bayer 2×2' },
-  { id: 'bayer4', label: 'Bayer 4×4' },
-  { id: 'bayer8', label: 'Bayer 8×8' },
-  { id: 'noise', label: 'Noise' },
-  { id: 'threshold', label: 'Threshold (no dither)' },
+/** How the algorithms are grouped in the dropdown. */
+export const ALGORITHM_GROUPS = ['Bayer', 'Noise', 'Screens', 'Other'] as const
+
+export const ALGORITHMS: { id: Algorithm; label: string; group: (typeof ALGORITHM_GROUPS)[number] }[] = [
+  { id: 'bayer2', label: 'Bayer 2×2', group: 'Bayer' },
+  { id: 'bayer4', label: 'Bayer 4×4', group: 'Bayer' },
+  { id: 'bayer8', label: 'Bayer 8×8', group: 'Bayer' },
+  { id: 'bayer16', label: 'Bayer 16×16', group: 'Bayer' },
+  { id: 'blue', label: 'Blue noise', group: 'Noise' },
+  { id: 'noise', label: 'Noise', group: 'Noise' },
+  { id: 'halftone', label: 'Halftone dots', group: 'Screens' },
+  { id: 'lines', label: 'Line screen', group: 'Screens' },
+  { id: 'threshold', label: 'Threshold (no dither)', group: 'Other' },
 ]
 
 /** How a pixel is matched to a palette color. */
@@ -38,7 +45,129 @@ export interface DitherParams {
   palette: string[]
 }
 
-const ALGORITHM_INDEX: Record<Algorithm, number> = { bayer2: 0, bayer4: 1, bayer8: 2, noise: 3, threshold: 4 }
+const ALGORITHM_INDEX: Record<Algorithm, number> = {
+  bayer2: 0,
+  bayer4: 1,
+  bayer8: 2,
+  noise: 3,
+  threshold: 4,
+  bayer16: 5,
+  blue: 6,
+  halftone: 7,
+  lines: 8,
+}
+
+/** Side of the tiling blue-noise texture. */
+const BLUE_SIZE = 64
+
+/**
+ * A tileable blue-noise threshold map by void-and-cluster: ranks every cell so that the cells below any
+ * threshold are spread as evenly as possible. Deterministic (fixed seed) and cheap enough to run once.
+ */
+function generateBlueNoise(): Uint8Array {
+  const n = BLUE_SIZE
+  const count = n * n
+  const sigma = 1.5
+  const radius = 6
+  const kernel: { dx: number; dy: number; w: number }[] = []
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      kernel.push({ dx, dy, w: Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma)) })
+    }
+  }
+
+  const energy = new Float32Array(count)
+  const pattern = new Uint8Array(count)
+  const addEnergy = (index: number, sign: number) => {
+    const x = index % n
+    const y = Math.floor(index / n)
+    for (const { dx, dy, w } of kernel) {
+      energy[((y + dy + n) % n) * n + ((x + dx + n) % n)] += sign * w
+    }
+  }
+  const rebuild = () => {
+    energy.fill(0)
+    for (let i = 0; i < count; i++) if (pattern[i]) addEnergy(i, 1)
+  }
+  /** The filled cell sitting in the densest cluster. */
+  const tightest = () => {
+    let best = -1
+    let bestEnergy = -Infinity
+    for (let i = 0; i < count; i++) {
+      if (pattern[i] && energy[i] > bestEnergy) {
+        bestEnergy = energy[i]
+        best = i
+      }
+    }
+    return best
+  }
+  /** The empty cell sitting in the largest void. */
+  const largestVoid = () => {
+    let best = -1
+    let bestEnergy = Infinity
+    for (let i = 0; i < count; i++) {
+      if (!pattern[i] && energy[i] < bestEnergy) {
+        bestEnergy = energy[i]
+        best = i
+      }
+    }
+    return best
+  }
+
+  // A fixed-seed random start of about 10% filled cells.
+  let seed = 0x9e3779b9
+  const random = () => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  const ones = Math.floor(count / 10)
+  for (let placed = 0; placed < ones; ) {
+    const i = Math.floor(random() * count)
+    if (!pattern[i]) {
+      pattern[i] = 1
+      placed++
+    }
+  }
+  rebuild()
+
+  // Phase 1: move the tightest cluster cell into the largest void until that stops helping.
+  for (let guard = 0; guard < count; guard++) {
+    const cluster = tightest()
+    pattern[cluster] = 0
+    addEnergy(cluster, -1)
+    const hole = largestVoid()
+    pattern[hole] = 1
+    addEnergy(hole, 1)
+    if (hole === cluster) break
+  }
+
+  const initial = Uint8Array.from(pattern)
+  const rank = new Float32Array(count)
+
+  // Phase 2: peel the filled cells off tightest-first, ranking them downward from the last of them.
+  for (let r = ones - 1; r >= 0; r--) {
+    const cluster = tightest()
+    rank[cluster] = r
+    pattern[cluster] = 0
+    addEnergy(cluster, -1)
+  }
+
+  // Phase 3: from the start pattern again, fill the largest voids, ranking upward.
+  pattern.set(initial)
+  rebuild()
+  for (let r = ones; r < count; r++) {
+    const hole = largestVoid()
+    rank[hole] = r
+    pattern[hole] = 1
+    addEnergy(hole, 1)
+  }
+
+  const out = new Uint8Array(count)
+  for (let i = 0; i < count; i++) out[i] = Math.round(((rank[i] + 0.5) / count) * 255)
+  return out
+}
 
 const VERTEX = `#version 300 es
 void main() {
@@ -50,6 +179,7 @@ void main() {
 const FRAGMENT = `#version 300 es
 precision highp float;
 uniform sampler2D u_tex;
+uniform sampler2D u_blue;
 uniform vec2 u_size;
 uniform float u_scale;
 uniform float u_lod;
@@ -67,7 +197,7 @@ out vec4 outColor;
 // Bayer matrix value in [0, 4^levels), built by interleaving the bits of x and y.
 int bayerIndex(ivec2 p, int levels) {
   int v = 0;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     if (i >= levels) break;
     int xb = (p.x >> i) & 1;
     int yb = (p.y >> i) & 1;
@@ -83,6 +213,18 @@ float threshold(ivec2 cell) {
   if (u_algo == 3) {
     // Interleaved gradient noise.
     return fract(52.9829189 * fract(dot(vec2(cell), vec2(0.06711056, 0.00583715))));
+  }
+  if (u_algo == 5) return (float(bayerIndex(cell, 4)) + 0.5) / 256.0;
+  if (u_algo == 6) return texelFetch(u_blue, ivec2(cell.x & ${BLUE_SIZE - 1}, cell.y & ${BLUE_SIZE - 1}), 0).r;
+  if (u_algo == 7) {
+    // Round dots on a 45-degree screen, 6 cells apart: the cell nearest a dot centre is pushed darkest, so
+    // dots grow outward from their centres as the image darkens.
+    vec2 p = (vec2(cell) + 0.5) * mat2(0.70710678, -0.70710678, 0.70710678, 0.70710678) / 6.0;
+    return 0.5 - 0.25 * (cos(6.2831853 * p.x) + cos(6.2831853 * p.y));
+  }
+  if (u_algo == 8) {
+    // Diagonal lines, 6 cells apart, as a triangle wave so tone maps evenly onto line thickness.
+    return abs(fract((float(cell.x) + float(cell.y) + 1.0) / 6.0) * 2.0 - 1.0);
   }
   return 0.5;
 }
@@ -186,6 +328,24 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     match: uniform('u_match'),
     keys: uniform('u_keys'),
     palette: uniform('u_palette'),
+    blue: uniform('u_blue'),
+  }
+  gl.uniform1i(loc.blue, 1)
+
+  // The blue-noise map is built and uploaded to texture unit 1 the first time it's used.
+  let blueTexture: WebGLTexture | null = null
+  function ensureBlueNoise() {
+    if (blueTexture) return
+    blueTexture = gl!.createTexture()
+    gl!.activeTexture(gl!.TEXTURE1)
+    gl!.bindTexture(gl!.TEXTURE_2D, blueTexture)
+    gl!.pixelStorei(gl!.UNPACK_ALIGNMENT, 1)
+    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.R8, BLUE_SIZE, BLUE_SIZE, 0, gl!.RED, gl!.UNSIGNED_BYTE, generateBlueNoise())
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.NEAREST)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.NEAREST)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.REPEAT)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.REPEAT)
+    gl!.activeTexture(gl!.TEXTURE0)
   }
 
   return {
@@ -196,6 +356,7 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     },
 
     draw(source, sourceScale, params) {
+      if (params.algorithm === 'blue') ensureBlueNoise()
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source)
       gl.generateMipmap(gl.TEXTURE_2D)
 
@@ -228,6 +389,7 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
 
     dispose() {
       gl.deleteTexture(texture)
+      if (blueTexture) gl.deleteTexture(blueTexture)
       // Not losing the context: getContext() on this canvas hands the same one back, which StrictMode's remount relies on.
       gl.deleteProgram(program)
     },

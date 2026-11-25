@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppMessage } from '../../desktop/WindowManager'
 import type { DitherParams, DitherRenderer } from './ditherRenderer'
-import { ALGORITHMS, MATCHINGS, MAX_PALETTE_COLORS, createDitherRenderer } from './ditherRenderer'
+import { ALGORITHM_GROUPS, ALGORITHMS, MATCHINGS, MAX_PALETTE_COLORS, createDitherRenderer } from './ditherRenderer'
 import type { AnimatedImage } from './animatedImage'
 import { decodeAnimatedImage } from './animatedImage'
 import { parsePreset, serializePreset } from './presetFile'
@@ -332,10 +332,14 @@ export function DitherApp() {
             <label className="ui-field">
               <span className="ui-field-header">Algorithm</span>
               <select value={params.algorithm} onChange={(e) => patch({ algorithm: e.target.value as DitherParams['algorithm'] })}>
-                {ALGORITHMS.map(({ id, label }) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
+                {ALGORITHM_GROUPS.map((group) => (
+                  <optgroup key={group} label={group}>
+                    {ALGORITHMS.filter((algorithm) => algorithm.group === group).map(({ id, label }) => (
+                      <option key={id} value={id}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
