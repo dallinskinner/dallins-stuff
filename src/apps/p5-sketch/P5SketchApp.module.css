@@ -233,9 +233,20 @@
   max-height: 60%;
 }
 
-.editorActions {
+/* The action button hovers over the editor's bottom-right corner, clear of its scrollbar. */
+.editorWrap {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--padding);
+  flex: 1;
+  min-height: 0;
+}
+
+.editorWrap .editor {
+  width: 100%;
+}
+
+.editorAction {
+  position: absolute;
+  right: 20px;
+  bottom: 8px;
 }

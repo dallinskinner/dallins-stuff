@@ -417,31 +417,29 @@ export function P5SketchApp() {
         {preview}
         {tab === 'code' && (
           <div className={styles.codeColumn}>
-            <textarea
-              className={styles.editor}
-              value={source === 'scene' ? flatCode : code}
-              readOnly={source === 'scene'}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={codeKeyDown}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
-              aria-label="Sketch code"
-            />
-            <div className={styles.editorActions}>
+            <div className={styles.editorWrap}>
+              <textarea
+                className={styles.editor}
+                value={source === 'scene' ? flatCode : code}
+                readOnly={source === 'scene'}
+                onChange={(e) => setCode(e.target.value)}
+                onKeyDown={codeKeyDown}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                aria-label="Sketch code"
+              />
               {source === 'scene' ? (
-                <button type="button" onClick={convertToCode}>
+                <button type="button" className={styles.editorAction} onClick={convertToCode}>
                   Convert to editable code
                 </button>
               ) : (
-                <>
-                  <button type="button" onClick={backToScene}>
-                    Back to the scene
-                  </button>
-                  <span className={styles.dialHint}>Edit freely and press Ctrl/Cmd+Enter to run.</span>
-                </>
+                <button type="button" className={styles.editorAction} onClick={backToScene}>
+                  Back to the scene
+                </button>
               )}
             </div>
+            {source === 'code' && <span className={styles.dialHint}>Edit freely and press Ctrl/Cmd+Enter to run.</span>}
           </div>
         )}
       </div>
