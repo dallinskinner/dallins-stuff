@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Dropdown } from '../pixel-art/Dropdown'
 import { DialEditor } from './DialEditor'
 import type { Driver, Scene, Shape, ShapeType } from './scene'
 import type { LightKind } from './scene'
@@ -11,6 +12,7 @@ import boxIcon from '../../assets/icons/box.png'
 import sphereIcon from '../../assets/icons/sphere.png'
 import cameraIcon from '../../assets/icons/camera.png'
 import lightIcon from '../../assets/icons/light.png'
+import kebabIcon from '../../assets/icons/kebab.png'
 import styles from './P5SketchApp.module.css'
 
 /** A setting's closed-row summary: its value now (a wave shows its center, a linear sweep its from and to, an expression its source) and which kind it is. */
@@ -179,18 +181,20 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
               {shape.name}
               {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
             </button>
-            <button type="button" data-size="icon" onClick={() => move(shape.id, 1)} aria-label={`Move ${shape.name} up`} title="Move up">
-              ↑
-            </button>
-            <button type="button" data-size="icon" onClick={() => move(shape.id, -1)} aria-label={`Move ${shape.name} down`} title="Move down">
-              ↓
-            </button>
-            <button type="button" data-size="icon" onClick={() => duplicate(shape)} disabled={shape.type === 'camera'} aria-label={`Duplicate ${shape.name}`} title={shape.type === 'camera' ? 'A scene has one camera' : 'Duplicate'}>
-              ⧉
-            </button>
-            <button type="button" data-size="icon" onClick={() => remove(shape.id)} aria-label={`Delete ${shape.name}`} title="Delete">
-              ×
-            </button>
+            <Dropdown label={`${shape.name} actions`} icon={kebabIcon} align="right">
+              <button type="button" onClick={() => move(shape.id, 1)}>
+                Move up
+              </button>
+              <button type="button" onClick={() => move(shape.id, -1)}>
+                Move down
+              </button>
+              <button type="button" disabled={shape.type === 'camera'} title={shape.type === 'camera' ? 'A scene has one camera' : undefined} onClick={() => duplicate(shape)}>
+                Duplicate
+              </button>
+              <button type="button" onClick={() => remove(shape.id)}>
+                Delete
+              </button>
+            </Dropdown>
           </li>
         ))}
       </ol>

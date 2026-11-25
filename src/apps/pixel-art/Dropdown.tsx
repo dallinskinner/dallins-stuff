@@ -9,10 +9,12 @@ interface DropdownProps {
   align?: 'left' | 'right'
   fullWidth?: boolean
   disabled?: boolean
+  /** Shows this icon (a mask-style image URL) instead of the label, as a square icon button; `label` then names it for screen readers. */
+  icon?: string
 }
 
 /** A button that toggles a popover below it, closing on any pointerdown outside. */
-export function Dropdown({ label, children, variant = 'menu', align = 'left', fullWidth = false, disabled = false }: DropdownProps) {
+export function Dropdown({ label, children, variant = 'menu', align = 'left', fullWidth = false, disabled = false, icon }: DropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -31,9 +33,25 @@ export function Dropdown({ label, children, variant = 'menu', align = 'left', fu
 
   return (
     <div className={styles.dropdown} data-full-width={fullWidth} ref={ref}>
-      <button type="button" className={styles.trigger} data-chevron aria-expanded={open} disabled={disabled} onClick={() => setOpen((o) => !o)}>
-        {label}
-      </button>
+      {icon ? (
+        <button
+          type="button"
+          className={styles.trigger}
+          data-size="icon"
+          aria-label={label}
+          title={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          disabled={disabled}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span className="ui-icon" style={{ '--icon': `url(${icon})` } as React.CSSProperties} />
+        </button>
+      ) : (
+        <button type="button" className={styles.trigger} data-chevron aria-expanded={open} disabled={disabled} onClick={() => setOpen((o) => !o)}>
+          {label}
+        </button>
+      )}
       {open && !disabled && (
         <div className={styles.popover} data-variant={variant} data-align={align} onClick={handleMenuClick}>
           {children}
