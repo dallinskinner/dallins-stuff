@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { makeNoise2D, makeNoise3D } from 'fast-simplex-noise'
+import { AppFrame } from '../AppFrame'
 import styles from './ScreenSavorApp.module.css'
 
 type AnimationMode = 'fade' | 'depth'
@@ -278,31 +279,15 @@ export function ScreenSavorApp() {
   }
 
   return (
-    <div className={styles.app}>
-      <div className={styles.workspace}>
-        <div className={styles.canvas}>
-          <pre
-            ref={preRef}
-            className={styles.render}
-            style={{
-              fontSize: `${cellSize}px`,
-              fontWeight,
-              lineHeight,
-              letterSpacing: `${letterSpacing}em`,
-            }}
-          >
-            {isPlaying ? null : art}
-          </pre>
-          <button
-            type="button"
-            className={styles.copyButton}
-            data-size="sm"
-            onClick={() => navigator.clipboard.writeText(preRef.current?.textContent ?? art)}
-          >
-            Copy
-          </button>
-        </div>
-        <div className={styles.controls}>
+    <AppFrame
+      rightWidth="160px"
+      top={
+        <button type="button" data-size="sm" onClick={() => navigator.clipboard.writeText(preRef.current?.textContent ?? art)}>
+          Copy
+        </button>
+      }
+      right={
+        <div className={`ui-fields ${styles.controls}`}>
           <details open>
             <summary>Canvas</summary>
             <div className="ui-details-body">
@@ -555,9 +540,9 @@ export function ScreenSavorApp() {
             </div>
           </details>
         </div>
-      </div>
-      <div className={styles.bottomBar}>
-        <div className={styles.playbackRow}>
+      }
+      bottom={
+        <>
           <button type="button" onClick={() => (isPlaying ? pause() : setIsPlaying(true))}>
             {isPlaying ? 'Pause' : 'Play'}
           </button>
@@ -575,8 +560,21 @@ export function ScreenSavorApp() {
           <span ref={frameCountRef} className={styles.frameCount}>
             {isPlaying ? null : `${currentFrame + 1} / ${totalFrames}`}
           </span>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <pre
+        ref={preRef}
+        className={styles.render}
+        style={{
+          fontSize: `${cellSize}px`,
+          fontWeight,
+          lineHeight,
+          letterSpacing: `${letterSpacing}em`,
+        }}
+      >
+        {isPlaying ? null : art}
+      </pre>
+    </AppFrame>
   )
 }

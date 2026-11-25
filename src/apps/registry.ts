@@ -43,7 +43,7 @@ export const apps: AppDefinition[] = [
     label: 'Tools',
     children: [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, windowMaxWidth: 760 },
-      { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, windowMaxWidth: '95vw' },
+      { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, defaultSize: { width: 1000, height: 680 } },
       { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, defaultSize: { width: 900, height: 640 } },
       { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, defaultSize: { width: 800, height: 560 }, accepts: ['palette'] },
       { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, defaultSize: { width: 900, height: 640 }, accepts: ['frame-source', 'palette'] },

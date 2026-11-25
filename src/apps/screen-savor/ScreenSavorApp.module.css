@@ -1,20 +1,5 @@
-.app {
-  display: flex;
-  flex-direction: column;
-  gap: var(--padding);
-}
-
-.workspace {
-  display: flex;
-  gap: var(--padding);
-  align-items: flex-start;
-}
-
-.canvas {
-  position: relative;
-}
-
 .render {
+  flex-shrink: 0;
   margin: 0;
   padding: var(--padding);
   border: 1px solid var(--border);
@@ -27,20 +12,6 @@
   max-width: none;
   overflow: visible;
   pointer-events: none;
-}
-
-.copyButton {
-  position: absolute;
-  top: calc(var(--padding) / 2);
-  right: calc(var(--padding) / 2);
-}
-
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--padding);
-  width: 160px;
-  flex-shrink: 0;
 }
 
 .controls details {
@@ -56,33 +27,9 @@
   line-height: 1.3;
 }
 
-.bottomBar {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--padding);
-  width: 100%;
-  padding-top: var(--padding);
-}
-
-.bottomBar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: calc(-1 * var(--padding));
-  right: calc(-1 * var(--padding));
-  height: 1px;
-  background: var(--border);
-}
-
-.playbackRow {
-  display: flex;
-  align-items: center;
-  gap: var(--padding);
-}
-
 .scrubber {
   flex: 1;
+  min-width: 120px;
 }
 
 .frameCount {
@@ -91,4 +38,11 @@
   text-align: right;
   font-variation-settings: 'MONO' 100, 'DRKM' var(--font-drkm);
   font-size: 14px;
+}
+
+/* The settings column scrolls on its own inside the right panel. */
+.controls {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
