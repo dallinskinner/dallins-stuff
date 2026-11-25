@@ -6,7 +6,7 @@ import { ContactApp } from './ContactApp'
 import { TypographyApp } from './TypographyApp'
 import { UiComponentsApp } from './UiComponentsApp'
 import { PixelArtApp } from './pixel-art/PixelArtApp'
-import { ScreenSavorApp } from './screen-savor/ScreenSavorApp'
+import { NoiseApp } from './noise/NoiseApp'
 import { ImageToolsApp } from './image-tools/ImageToolsApp'
 import { ColorPaletteApp } from './color-palette/ColorPaletteApp'
 import { DitherApp } from './dither/DitherApp'
@@ -43,7 +43,7 @@ export const apps: AppDefinition[] = [
     label: 'Tools',
     children: [
       { id: 'pixel-art', label: 'Pixel Art', icon: pencilIcon, component: PixelArtApp, defaultSize: { width: 1100, height: 760 } },
-      { id: 'screen-savor', label: 'Screen Flavor', icon: screenFlavorIcon, component: ScreenSavorApp, defaultSize: { width: 1200, height: 800 } },
+      { id: 'noise', label: 'Noise', icon: screenFlavorIcon, component: NoiseApp, defaultSize: { width: 1000, height: 700 } },
       { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, defaultSize: { width: 1100, height: 760 } },
       { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, defaultSize: { width: 960, height: 680 }, accepts: ['palette'] },
       { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, defaultSize: { width: 1100, height: 760 }, accepts: ['frame-source', 'palette'] },

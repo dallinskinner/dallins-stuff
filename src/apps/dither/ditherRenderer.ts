@@ -30,7 +30,24 @@ const MATCHING_INDEX: Record<Matching, number> = { rgb: 0, perceptual: 1, value:
 
 export const MAX_PALETTE_COLORS = 16
 
+/** `dither` quantizes to the palette with a threshold pattern; `ascii` draws a glyph per cell, chosen by brightness. */
+export type RenderMode = 'dither' | 'ascii'
+
+/** Characters from darkest source to lightest, so it reads as light ink on the palette's first (background) color. */
+export const DEFAULT_RAMP = ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'
+
 export interface DitherParams {
+  mode: RenderMode
+  /** ASCII mode: characters from darkest to lightest source. */
+  ramp: string
+  /** ASCII mode: width of one glyph in output pixels (its height is twice that). */
+  cellSize: number
+  /** ASCII mode: multiplier on the horizontal distance between glyphs; below 1 they're packed tighter than their width. */
+  letterSpacing: number
+  /** ASCII mode: multiplier on the vertical distance between rows. */
+  lineHeight: number
+  /** ASCII mode: flips which end of the ramp the dark parts of the source use. */
+  invert: boolean
   algorithm: Algorithm
   matching: Matching
   /** Size of one dithered "pixel", in output pixels. */
@@ -55,6 +72,26 @@ const ALGORITHM_INDEX: Record<Algorithm, number> = {
   blue: 6,
   halftone: 7,
   lines: 8,
+}
+
+/** Widest glyph cell the atlas is rasterized at, so a long ramp at a big cell size can't outgrow the texture. */
+const MAX_GLYPH_W = 64
+
+/** A one-row atlas of the characters, white on black, one glyphW x (2 * glyphW) cell each. */
+function renderGlyphAtlas(chars: string[], glyphW: number): HTMLCanvasElement {
+  const glyphH = glyphW * 2
+  const atlas = document.createElement('canvas')
+  atlas.width = glyphW * chars.length
+  atlas.height = glyphH
+  const ctx = atlas.getContext('2d')!
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, atlas.width, atlas.height)
+  ctx.fillStyle = '#fff'
+  ctx.font = `${Math.round(glyphH * 0.8)}px ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  chars.forEach((char, i) => ctx.fillText(char, i * glyphW + glyphW / 2, glyphH / 2 + 1))
+  return atlas
 }
 
 /** Side of the tiling blue-noise texture. */
@@ -180,6 +217,12 @@ const FRAGMENT = `#version 300 es
 precision highp float;
 uniform sampler2D u_tex;
 uniform sampler2D u_blue;
+uniform sampler2D u_atlas;
+uniform int u_mode;
+uniform vec2 u_cell;
+uniform vec2 u_glyph;
+uniform int u_glyphs;
+uniform bool u_invert;
 uniform vec2 u_size;
 uniform float u_scale;
 uniform float u_lod;
@@ -245,13 +288,8 @@ vec3 srgbToOklab(vec3 c) {
   );
 }
 
-void main() {
-  ivec2 cell = ivec2(floor(gl_FragCoord.xy / u_scale));
-  vec2 uv = (vec2(cell) + 0.5) * u_scale / u_size;
-  vec3 color = textureLod(u_tex, uv, u_lod).rgb;
-  color = (color - 0.5) * u_contrast + 0.5 + u_brightness;
-  color += (threshold(cell) - 0.5) * u_spread;
-
+// The palette color closest to color, by the chosen matching.
+vec3 nearest(vec3 color) {
   vec3 key = color;
   if (u_match >= 1) key = srgbToOklab(color);
   if (u_match == 2) key.yz = vec2(0.0);
@@ -267,7 +305,39 @@ void main() {
       best = u_palette[i];
     }
   }
-  outColor = vec4(best, 1.0);
+  return best;
+}
+
+void main() {
+  if (u_mode == 1) {
+    // ASCII: average the source over each glyph cell, pick a glyph by brightness, and draw it as ink on the background.
+    vec2 cellCoord = gl_FragCoord.xy / u_cell;
+    vec2 uv = (floor(cellCoord) + 0.5) * u_cell / u_size;
+    vec3 sampled = textureLod(u_tex, uv, u_lod).rgb;
+    sampled = (sampled - 0.5) * u_contrast + 0.5 + u_brightness;
+    float lum = clamp(dot(sampled, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+    if (u_invert) lum = 1.0 - lum;
+    float index = min(float(u_glyphs - 1), floor(lum * float(u_glyphs)));
+    vec2 local = fract(cellCoord);
+    // The glyph keeps its own size and sits centered in the cell, so a cell smaller than it clips the glyph.
+    vec2 g = (local - 0.5) * u_cell / u_glyph + 0.5;
+    float ink = 0.0;
+    if (g.x >= 0.0 && g.x <= 1.0 && g.y >= 0.0 && g.y <= 1.0) {
+      ink = texture(u_atlas, vec2((index + g.x) / float(u_glyphs), g.y)).r;
+    }
+    // Two colors are background and ink; with more, the ink takes the palette color nearest the cell.
+    vec3 fg = u_count > 2 ? nearest(sampled) : u_palette[max(u_count - 1, 0)];
+    outColor = vec4(mix(u_palette[0], fg, ink), 1.0);
+    return;
+  }
+
+  ivec2 cell = ivec2(floor(gl_FragCoord.xy / u_scale));
+  vec2 uv = (vec2(cell) + 0.5) * u_scale / u_size;
+  vec3 color = textureLod(u_tex, uv, u_lod).rgb;
+  color = (color - 0.5) * u_contrast + 0.5 + u_brightness;
+  color += (threshold(cell) - 0.5) * u_spread;
+
+  outColor = vec4(nearest(color), 1.0);
 }`
 
 export function hexToRgb(hex: string): [number, number, number] {
@@ -329,8 +399,40 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     keys: uniform('u_keys'),
     palette: uniform('u_palette'),
     blue: uniform('u_blue'),
+    atlas: uniform('u_atlas'),
+    mode: uniform('u_mode'),
+    cell: uniform('u_cell'),
+    glyph: uniform('u_glyph'),
+    glyphs: uniform('u_glyphs'),
+    invert: uniform('u_invert'),
   }
   gl.uniform1i(loc.blue, 1)
+  gl.uniform1i(loc.atlas, 2)
+
+  // The glyph atlas lives on texture unit 2. It's rasterized at the on-screen cell size so glyphs stay sharp,
+  // and rebuilt only when the ramp or that size changes.
+  const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number
+  let atlasTexture: WebGLTexture | null = null
+  let atlasKey = ''
+  let glyphCount = 1
+  function ensureAtlas(ramp: string, cellWidth: number) {
+    const chars = Array.from(ramp.length > 0 ? ramp : ' ')
+    const glyphW = Math.max(2, Math.min(Math.round(cellWidth), MAX_GLYPH_W, Math.floor(maxTextureSize / chars.length)))
+    const key = `${glyphW}:${chars.join('')}`
+    if (atlasTexture && key === atlasKey) return
+    atlasKey = key
+    glyphCount = chars.length
+    atlasTexture ??= gl!.createTexture()
+    gl!.activeTexture(gl!.TEXTURE2)
+    gl!.bindTexture(gl!.TEXTURE_2D, atlasTexture)
+    gl!.pixelStorei(gl!.UNPACK_FLIP_Y_WEBGL, true)
+    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, renderGlyphAtlas(chars, glyphW))
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE)
+    gl!.activeTexture(gl!.TEXTURE0)
+  }
 
   // The blue-noise map is built and uploaded to texture unit 1 the first time it's used.
   let blueTexture: WebGLTexture | null = null
@@ -356,7 +458,9 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     },
 
     draw(source, sourceScale, params) {
-      if (params.algorithm === 'blue') ensureBlueNoise()
+      const ascii = params.mode === 'ascii'
+      if (ascii) ensureAtlas(params.ramp, params.cellSize)
+      else if (params.algorithm === 'blue') ensureBlueNoise()
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source)
       gl.generateMipmap(gl.TEXTURE_2D)
 
@@ -375,7 +479,12 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
 
       gl.uniform2f(loc.size, canvas.width, canvas.height)
       gl.uniform1f(loc.scale, params.scale)
-      gl.uniform1f(loc.lod, Math.max(0, Math.log2(params.scale / sourceScale)))
+      gl.uniform1f(loc.lod, Math.max(0, Math.log2((ascii ? params.cellSize * params.letterSpacing : params.scale) / sourceScale)))
+      gl.uniform1i(loc.mode, ascii ? 1 : 0)
+      gl.uniform2f(loc.cell, params.cellSize * params.letterSpacing, params.cellSize * 2 * params.lineHeight)
+      gl.uniform2f(loc.glyph, params.cellSize, params.cellSize * 2)
+      gl.uniform1i(loc.glyphs, glyphCount)
+      gl.uniform1i(loc.invert, params.invert ? 1 : 0)
       gl.uniform1f(loc.brightness, params.brightness)
       gl.uniform1f(loc.contrast, params.contrast)
       gl.uniform1f(loc.spread, params.strength / (levels - 1))
@@ -390,6 +499,7 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     dispose() {
       gl.deleteTexture(texture)
       if (blueTexture) gl.deleteTexture(blueTexture)
+      if (atlasTexture) gl.deleteTexture(atlasTexture)
       // Not losing the context: getContext() on this canvas hands the same one back, which StrictMode's remount relies on.
       gl.deleteProgram(program)
     },

@@ -1,5 +1,5 @@
 import type { Algorithm, DitherParams, Matching } from './ditherRenderer'
-import { ALGORITHMS, MATCHINGS, MAX_PALETTE_COLORS } from './ditherRenderer'
+import { ALGORITHMS, DEFAULT_RAMP, MATCHINGS, MAX_PALETTE_COLORS } from './ditherRenderer'
 
 const FORMAT = 'dallins-dither-preset'
 const VERSION = 1
@@ -26,13 +26,20 @@ export function parsePreset(text: string): DitherParams {
   }
   if (data.format !== FORMAT) throw new Error('Not a dither preset file.')
   if (data.version !== VERSION) throw new Error(`Unsupported preset version ${data.version}.`)
-  const { algorithm, matching, scale, brightness, contrast, strength, palette } = data
+  const { mode, ramp, cellSize, letterSpacing, lineHeight, invert, algorithm, matching, scale, brightness, contrast, strength, palette } = data
   const known = ALGORITHMS.some((a) => a.id === algorithm)
   if (!known || !Array.isArray(palette) || palette.length === 0 || !palette.every((c) => typeof c === 'string' && HEX.test(c))) {
     throw new Error('Preset is missing or has invalid fields.')
   }
   const num = (value: unknown, fallback: number) => (typeof value === 'number' && Number.isFinite(value) ? value : fallback)
   return {
+    // The ASCII fields were added after version 1 shipped, so older files lack them.
+    mode: mode === 'ascii' ? 'ascii' : 'dither',
+    ramp: typeof ramp === 'string' && ramp.length > 0 ? ramp : DEFAULT_RAMP,
+    cellSize: Math.max(2, Math.round(num(cellSize, 8))),
+    letterSpacing: Math.max(0.25, num(letterSpacing, 1)),
+    lineHeight: Math.max(0.25, num(lineHeight, 1)),
+    invert: invert === true,
     algorithm: algorithm as Algorithm,
     // Added after version 1 shipped, so older files lack it.
     matching: MATCHINGS.some((m) => m.id === matching) ? (matching as Matching) : 'rgb',
