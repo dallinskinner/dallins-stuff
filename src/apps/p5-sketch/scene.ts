@@ -258,19 +258,9 @@ export function defaultLights(scene: Pick<Scene, 'width' | 'height' | 'shapes'>)
   return [ambient, directional]
 }
 
-/** A copy with a fresh id, nudged so it doesn't sit exactly on the original. */
+/** An exact copy with a fresh id; it sits right on top of the original until you move one of them. */
 export function duplicateShape(shape: Shape): Shape {
-  const copy: Shape = { ...structuredClone(shape), id: nextShapeId++, name: `${shape.name} copy` }
-  for (const key of ['x', 'y']) {
-    const driver = copy.props[key]
-    if (driver?.kind === 'const') driver.value += 20
-    else if (driver?.kind === 'wave') driver.center += 20
-    else if (driver?.kind === 'linear') {
-      driver.from += 20
-      driver.to += 20
-    }
-  }
-  return copy
+  return { ...structuredClone(shape), id: nextShapeId++, name: `${shape.name} copy` }
 }
 
 /** The driver's value now (where a sweep starts), or the middle of the slider range when it's an expression. */
