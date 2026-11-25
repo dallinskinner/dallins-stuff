@@ -420,3 +420,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.scrubber {
+  flex: 1;
+  min-width: 120px;
+}
+
+.timeReadout {
+  min-width: 11ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

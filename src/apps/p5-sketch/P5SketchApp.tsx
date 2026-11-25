@@ -4,6 +4,8 @@ import { Dropdown } from '../pixel-art/Dropdown'
 import type { LiveParams } from './codegen'
 import { generateSketch } from './codegen'
 import { ScenePanel, SceneTools } from './ScenePanel'
+import playIcon from '../../assets/icons/play.png'
+import pauseIcon from '../../assets/icons/pause.png'
 import type { Scene } from './scene'
 import { createDefaultScene } from './scene'
 import { buildDocument } from './sketchDocument'
@@ -58,8 +60,15 @@ export function P5SketchApp() {
   const [logs, setLogs] = useState<LogLine[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [streaming, setStreaming] = useState(false)
+  const [playing, setPlaying] = useState(true)
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  /** The scrubber and its readout follow playback by being set directly, so a 60 fps clock doesn't re-render the app. */
+  const scrubberRef = useRef<HTMLInputElement>(null)
+  const timeReadoutRef = useRef<HTMLSpanElement>(null)
+  const playingRef = useRef(true)
+  /** The sketch's clock in seconds, as last reported; restored if the sketch restarts while paused. */
+  const timeRef = useRef(0)
   const lineOffsetRef = useRef(0)
   const logIdRef = useRef(0)
   /** Mirrors the sketch's output so a stream can be captured from it; created on first use. */
@@ -113,6 +122,27 @@ export function P5SketchApp() {
     iframeRef.current?.contentWindow?.postMessage({ type: 'params', params: paramsRef.current }, '*')
   }
 
+  /** Tells the sketch to play or pause, and (when `t` is given) to jump to that time in seconds. */
+  function postTime(t?: number) {
+    iframeRef.current?.contentWindow?.postMessage({ type: 'time', playing: playingRef.current, ...(t === undefined ? {} : { t }) }, '*')
+  }
+
+  /** Shows a time on the scrubber and readout: where it is within the loop for a scene, or just elapsed seconds for code. */
+  function showTime(t: number) {
+    timeRef.current = t
+    const isScene = sourceRef.current === 'scene'
+    const loop = sceneRef.current.loop
+    const shown = isScene ? ((t % loop) + loop) % loop : t
+    if (scrubberRef.current) scrubberRef.current.value = String(shown)
+    if (timeReadoutRef.current) timeReadoutRef.current.textContent = isScene ? `${shown.toFixed(2)} / ${loop.toFixed(2)} s` : `${shown.toFixed(2)} s`
+  }
+
+  function setPlayback(next: boolean) {
+    playingRef.current = next
+    setPlaying(next)
+    postTime()
+  }
+
   function postStreamState() {
     iframeRef.current?.contentWindow?.postMessage({ type: 'stream', on: streamingRef.current }, '*')
   }
@@ -151,6 +181,11 @@ export function P5SketchApp() {
         case 'ready':
           if (sourceRef.current === 'scene') postParams()
           postStreamState()
+          // A restarted sketch's clock starts at 0, so one that was paused is put back where it was.
+          if (!playingRef.current) postTime(timeRef.current)
+          break
+        case 'time':
+          showTime(data.t)
           break
         case 'size':
           setSize({ width: data.width, height: data.height })
@@ -206,6 +241,8 @@ export function P5SketchApp() {
   }
 
   function restart() {
+    timeRef.current = 0
+    showTime(0)
     if (source === 'scene') startScene()
     else void start(() => code)
   }
@@ -245,6 +282,11 @@ export function P5SketchApp() {
     const file = serializeSketch({ title, source, code: savedCode, scene })
     download(new Blob([file], { type: 'application/json' }), `${title.trim() || 'sketch'}.p5sketch.json`)
   }
+
+  // React rewrites the readout's text when the loop length or source changes, so put the current time back.
+  useEffect(() => {
+    showTime(timeRef.current)
+  }, [scene.loop, source])
 
   const shown = source === 'scene' ? { width: scene.width, height: scene.height } : size
 
@@ -331,6 +373,31 @@ export function P5SketchApp() {
       bottom={
         <>
           <button onClick={restart}>Restart</button>
+          <button type="button" data-size="icon" onClick={() => setPlayback(!playing)} aria-label={playing ? 'Pause' : 'Play'} title={playing ? 'Pause' : 'Play'}>
+            <span className="ui-icon" style={{ '--icon': `url(${playing ? pauseIcon : playIcon})` } as React.CSSProperties} />
+          </button>
+          {/* A hand-written sketch has no loop length to scrub across, so it gets the readout alone. */}
+          {source === 'scene' && (
+            <input
+              ref={scrubberRef}
+              type="range"
+              className={styles.scrubber}
+              aria-label="Time"
+              min={0}
+              max={scene.loop}
+              step={0.01}
+              defaultValue={0}
+              onPointerDown={() => playing && setPlayback(false)}
+              onChange={(e) => {
+                const t = Number(e.currentTarget.value)
+                showTime(t)
+                postTime(t)
+              }}
+            />
+          )}
+          <span ref={timeReadoutRef} className={styles.timeReadout}>
+            {source === 'scene' ? `0.00 / ${scene.loop.toFixed(2)} s` : '0.00 s'}
+          </span>
           {logs.length > 0 && (
             <pre className={styles.console}>
               {logs.map((line) => (
