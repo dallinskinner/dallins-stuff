@@ -160,13 +160,6 @@
   height: var(--h, 400px);
 }
 
-/* Sits over the sketch so clicks pick and drag shapes instead of reaching the iframe. */
-.overlay {
-  position: absolute;
-  inset: 0;
-  touch-action: none;
-}
-
 .notice {
   display: flex;
   flex-direction: column;

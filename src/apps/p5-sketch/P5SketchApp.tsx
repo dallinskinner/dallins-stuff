@@ -36,14 +36,6 @@ interface Run {
 type Source = 'scene' | 'code'
 type Tab = 'gui' | 'code'
 
-interface Drag {
-  pickId: number
-  /** Null until the sketch says which shape is under the pointer. */
-  shapeId: number | null
-  lastX: number
-  lastY: number
-}
-
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -81,8 +73,6 @@ export function P5SketchApp() {
   const paramsRef = useRef<LiveParams | null>(null)
   /** The scene code the running sketch was started from; dial changes don't alter it, structural ones do. */
   const startedBodyRef = useRef<string | null>(null)
-  const dragRef = useRef<Drag | null>(null)
-  const pickIdRef = useRef(0)
 
   const generated = useMemo(() => generateSketch(scene, true), [scene])
   const flatCode = useMemo(() => (tab === 'code' && source === 'scene' ? generateSketch(scene, false).body : ''), [scene, tab, source])
@@ -165,17 +155,6 @@ export function P5SketchApp() {
         case 'size':
           setSize({ width: data.width, height: data.height })
           break
-        case 'picked': {
-          if (data.id !== pickIdRef.current) break
-          const shape = data.shape >= 0 ? sceneRef.current.shapes[data.shape] : undefined
-          setSelectedId(shape?.id ?? null)
-          const drag = dragRef.current
-          if (drag && drag.pickId === data.id) {
-            if (shape) drag.shapeId = shape.id
-            else dragRef.current = null
-          }
-          break
-        }
         case 'frame': {
           const bitmap = data.bitmap as ImageBitmap
           const canvas = (streamCanvasRef.current ??= document.createElement('canvas'))
@@ -267,47 +246,6 @@ export function P5SketchApp() {
     download(new Blob([file], { type: 'application/json' }), `${title.trim() || 'sketch'}.p5sketch.json`)
   }
 
-  // --- Canvas interaction (GUI mode): pick a shape and drag it. ---
-
-  function pointOnCanvas(e: React.PointerEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    return { x: ((e.clientX - rect.left) * scene.width) / rect.width, y: ((e.clientY - rect.top) * scene.height) / rect.height }
-  }
-
-  function onCanvasPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    const { x, y } = pointOnCanvas(e)
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const pickId = ++pickIdRef.current
-    dragRef.current = { pickId, shapeId: null, lastX: x, lastY: y }
-    iframeRef.current?.contentWindow?.postMessage({ type: 'pick', x, y, id: pickId }, '*')
-  }
-
-  function onCanvasPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current
-    if (!drag || drag.shapeId === null) return
-    const { x, y } = pointOnCanvas(e)
-    const dx = x - drag.lastX
-    const dy = y - drag.lastY
-    drag.lastX = x
-    drag.lastY = y
-    // Moves the dial's own center, so an animated shape is dragged to a new middle rather than snapping back.
-    // Expression dials have no number to nudge and stay put.
-    const shift = (driver: Scene['shapes'][number]['props'][string], by: number) =>
-      driver.kind === 'const' ? { ...driver, value: driver.value + by } : driver.kind === 'wave' ? { ...driver, center: driver.center + by } : driver
-    setScene((prev) => ({
-      ...prev,
-      shapes: prev.shapes.map((shape) =>
-        shape.id === drag.shapeId ? { ...shape, props: { ...shape.props, x: shift(shape.props.x, dx), y: shift(shape.props.y, dy) } } : shape,
-      ),
-    }))
-  }
-
-  const endDrag = () => {
-    dragRef.current = null
-  }
-
-  // Picking and dragging on the canvas is 2D-only for now; 3D shapes are selected from the layers list.
-  const guiActive = source === 'scene' && tab === 'gui' && scene.mode === '2d'
   const shown = source === 'scene' ? { width: scene.width, height: scene.height } : size
 
   const preview = (
@@ -325,15 +263,6 @@ export function P5SketchApp() {
             sandbox="allow-scripts"
             srcDoc={run.html}
             title="Sketch preview"
-          />
-        )}
-        {guiActive && run && (
-          <div
-            className={styles.overlay}
-            onPointerDown={onCanvasPointerDown}
-            onPointerMove={onCanvasPointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
           />
         )}
       </div>

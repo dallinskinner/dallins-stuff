@@ -1,7 +1,7 @@
 /** Runs inside the sandboxed iframe, after p5 and before the user's code. The iframe has an opaque origin, so
  *  it can't be reached from the page; everything crosses by postMessage:
- *    out: ready, size, frame (an ImageBitmap, only while streaming), picked, error, log
- *    in:  stream { on }, params, pick { x, y, id } */
+ *    out: ready, size, frame (an ImageBitmap, only while streaming), error, log
+ *    in:  stream { on }, params */
 const BRIDGE = `
 (function () {
   var streaming = false;
@@ -31,16 +31,6 @@ const BRIDGE = `
     } else if (data.type === 'params') {
       // GUI sketches read their numbers from a global P, so dials change them without a restart.
       window.P = data.params;
-    } else if (data.type === 'pick') {
-      // GUI sketches record where each shape was drawn in HITS; the last hit is the one on top.
-      var hits = window.HITS || [];
-      var found = -1;
-      for (var j = hits.length - 1; j >= 0; j--) {
-        var dx = data.x - hits[j].x;
-        var dy = data.y - hits[j].y;
-        if (dx * dx + dy * dy <= hits[j].r * hits[j].r) { found = hits[j].k; break; }
-      }
-      post({ type: 'picked', id: data.id, shape: found });
     }
   });
 

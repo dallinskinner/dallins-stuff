@@ -69,7 +69,6 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
   }
 
   const lines: string[] = []
-  if (live) lines.push('var HITS = [] // where each shape was drawn, for picking with the mouse', '')
   // Live sketches always carry the easing helpers so switching one on doesn't change the structure; flat code only when used.
   const usesEasing = scene.shapes.some((shape) =>
     Object.values(shape.props).some((d) => (d.kind === 'wave' && d.ease !== 'none') || (d.kind === 'expr' && d.source.includes('E.'))),
@@ -81,7 +80,6 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
   lines.push('  const t = millis() / 1000 // seconds since the sketch started')
   lines.push(`  const p = (t / ${live ? 'P.loop' : num(scene.loop)}) % 1 // 0 to 1 through the loop`)
   lines.push(`  background(${live ? 'P.bg' : JSON.stringify(scene.background)})`)
-  if (live) lines.push('  HITS.length = 0')
   // Lights are set every frame; without them 3D shapes are flat-colored. Directional light comes from the upper left, in front.
   if (is3d && scene.lights) lines.push('  ambientLight(110)', '  directionalLight(255, 255, 255, 0.4, 0.6, -0.8)')
 
@@ -89,20 +87,6 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
     lines.push('', ...shapeBlock(scene, shape, k, live))
   })
 
-  if (live && !is3d) {
-    lines.push(
-      '',
-      '  if (P.guides) {',
-      '    push()',
-      '    noFill()',
-      '    stroke(255, 60, 200)',
-      '    strokeWeight(1.5)',
-      '    drawingContext.setLineDash([4, 4])',
-      '    for (const h of HITS) if (h.k === P.sel) circle(h.x, h.y, h.r * 2 + 8)',
-      '    pop()',
-      '  }',
-    )
-  }
   lines.push('}', '')
 
   const body = lines.join('\n')
@@ -191,8 +175,20 @@ function shapeBlock(scene: Scene, shape: Shape, k: number, live: boolean): strin
     out.push('    line(-length / 2, 0, length / 2, 0)')
     radius = 'length / 2'
   }
+  // The selected shape gets a dashed magenta ring just outside it, only while editing.
+  if (live) {
+    out.push(
+      `    if (P.guides && P.sel === ${k}) {`,
+      '      drawingContext.globalAlpha = 1',
+      '      noFill()',
+      '      stroke(255, 60, 200)',
+      '      strokeWeight(1.5)',
+      '      drawingContext.setLineDash([4, 4])',
+      `      circle(0, 0, max(${radius}, 8) * 2 + 8)`,
+      '    }',
+    )
+  }
   out.push('    pop()')
-  if (live) out.push(`    HITS.push({ k: ${k}, x, y, r: max(${radius}, 8) })`)
   out.push('  }')
   return out
 }
