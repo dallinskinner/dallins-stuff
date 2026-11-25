@@ -44,8 +44,6 @@
   /* ---- Buttons, selects, text inputs ---- */
 
   :scope :is(button, .ui-button, select, input:is(:not([type]), [type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password'])) {
-    appearance: none;
-    -webkit-appearance: none;
     -webkit-tap-highlight-color: transparent;
     text-shadow: none;
     box-shadow: none;
@@ -63,6 +61,20 @@
     font-variation-settings: var(--ui-font-variation);
     line-height: 1;
     cursor: pointer;
+  }
+
+  /* Drop the platform's own button/field chrome (iOS paints gradients and bigger radii). A select is left out
+     where base-select is supported: its `appearance: base-select` (below) must not be overridden here. */
+  :scope :is(button, .ui-button, input:is(:not([type]), [type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password'])) {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  @supports not (appearance: base-select) {
+    :scope select {
+      appearance: none;
+      -webkit-appearance: none;
+    }
   }
 
   :scope :is(button, .ui-button, input:is(:not([type]), [type='text'], [type='number'], [type='search'], [type='email'], [type='url'], [type='password'])) {
