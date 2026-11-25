@@ -310,7 +310,7 @@ export function P5SketchApp() {
   const shown = source === 'scene' ? { width: scene.width, height: scene.height } : size
 
   const preview = (
-    <div className={styles.preview} data-side={tab === 'code' ? 'right' : undefined}>
+    <div className={styles.preview}>
       <div
         className={styles.previewWrap}
         style={shown ? ({ '--w': `${shown.width}px`, '--h': `${shown.height}px` } as React.CSSProperties) : undefined}
@@ -341,7 +341,7 @@ export function P5SketchApp() {
 
   return (
     <AppFrame
-      rightWidth={tab === 'gui' ? '300px' : undefined}
+      rightWidth="300px"
       top={
         <>
           <div className={styles.tabs} role="group" aria-label="Mode">
@@ -384,9 +384,7 @@ export function P5SketchApp() {
         ) : undefined
       }
       right={
-        tab === 'code' ? (
-          preview
-        ) : source === 'scene' ? (
+        tab === 'code' ? undefined : source === 'scene' ? (
           <ScenePanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
         ) : (
           <div className={styles.panel}>
@@ -415,38 +413,39 @@ export function P5SketchApp() {
         </>
       }
     >
-      {tab === 'code' ? (
-        <div className={styles.codeColumn}>
-          {source === 'scene' ? (
-            <p className={styles.notice}>
-              This is the code your scene generates. Convert it to take over by hand; the dials will stop driving the sketch.
-              <button type="button" onClick={convertToCode}>
-                Convert to editable code
-              </button>
-            </p>
-          ) : (
-            <p className={styles.notice}>
-              Edit freely and press Ctrl/Cmd+Enter to run.
-              <button type="button" onClick={backToScene}>
-                Back to the scene
-              </button>
-            </p>
-          )}
-          <textarea
-            className={styles.editor}
-            value={source === 'scene' ? flatCode : code}
-            readOnly={source === 'scene'}
-            onChange={(e) => setCode(e.target.value)}
-            onKeyDown={codeKeyDown}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            aria-label="Sketch code"
-          />
-        </div>
-      ) : (
-        preview
-      )}
+      <div className={styles.stage} data-mode={tab}>
+        {preview}
+        {tab === 'code' && (
+          <div className={styles.codeColumn}>
+            {source === 'scene' ? (
+              <p className={styles.notice}>
+                This is the code your scene generates. Convert it to take over by hand; the dials will stop driving the sketch.
+                <button type="button" onClick={convertToCode}>
+                  Convert to editable code
+                </button>
+              </p>
+            ) : (
+              <p className={styles.notice}>
+                Edit freely and press Ctrl/Cmd+Enter to run.
+                <button type="button" onClick={backToScene}>
+                  Back to the scene
+                </button>
+              </p>
+            )}
+            <textarea
+              className={styles.editor}
+              value={source === 'scene' ? flatCode : code}
+              readOnly={source === 'scene'}
+              onChange={(e) => setCode(e.target.value)}
+              onKeyDown={codeKeyDown}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              aria-label="Sketch code"
+            />
+          </div>
+        )}
+      </div>
     </AppFrame>
   )
 }
