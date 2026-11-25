@@ -62,13 +62,18 @@ export interface ExprDriver {
 
 export type Driver = ConstDriver | WaveDriver | LinearDriver | ExprDriver
 
-export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere' | 'camera' | 'light'
+export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'ellipsoid' | 'plane' | 'camera' | 'light'
 export const SHAPE_LABELS: Record<ShapeType, string> = {
   circle: 'Circle',
   rect: 'Rectangle',
   line: 'Line',
   box: 'Box',
   sphere: 'Sphere',
+  cylinder: 'Cylinder',
+  cone: 'Cone',
+  torus: 'Torus',
+  ellipsoid: 'Ellipsoid',
+  plane: 'Plane',
   camera: 'Camera',
   light: 'Light',
 }
@@ -84,7 +89,9 @@ const LIGHT_LABELS = Object.fromEntries(LIGHT_KINDS.map((k) => [k.id, k.label]))
 /** Things that aren't drawn: the camera and lights shape how the 3D scene is seen, and sit in the layers list like shapes. */
 export const isSceneObject = (type: ShapeType) => type === 'camera' || type === 'light'
 /** Everything that only exists in a 3D scene. */
-export const is3D = (type: ShapeType) => type === 'box' || type === 'sphere' || isSceneObject(type)
+/** The shapes that are drawn in 3D (as opposed to the camera and lights). */
+export const SHAPES_3D: ShapeType[] = ['box', 'sphere', 'cylinder', 'cone', 'torus', 'ellipsoid', 'plane']
+export const is3D = (type: ShapeType) => SHAPES_3D.includes(type) || isSceneObject(type)
 
 export type SceneMode = '2d' | '3d'
 
@@ -157,6 +164,7 @@ export function propSpecs(shape: Pick<Shape, 'type' | 'outline' | 'kind'>, scene
     if (shape.kind === 'point') return [x, y, { key: 'z', label: 'Z', min: -big, max: big, step: 1 }, intensity]
     return [dir('dirX', 'Direction X'), dir('dirY', 'Direction Y'), dir('dirZ', 'Direction Z'), intensity]
   }
+  const size: PropSpec = { key: 'size', label: 'Size', min: 0, max: big, step: 1 }
   const z: PropSpec = { key: 'z', label: 'Z', min: -big, max: big, step: 1 }
   const turns: PropSpec[] = [
     { key: 'rotX', label: 'Rotate X', min: -360, max: 360, step: 1 },
@@ -171,7 +179,15 @@ export function propSpecs(shape: Pick<Shape, 'type' | 'outline' | 'kind'>, scene
         : shape.type === 'box'
           ? [x, y, z, { key: 'w', label: 'Width', min: 0, max: width, step: 1 }, { key: 'h', label: 'Height', min: 0, max: height, step: 1 }, { key: 'd', label: 'Depth', min: 0, max: big, step: 1 }, ...turns]
           : shape.type === 'sphere'
-            ? [x, y, z, { key: 'size', label: 'Size', min: 0, max: big, step: 1 }, ...turns]
+            ? [x, y, z, size, ...turns]
+            : shape.type === 'cylinder' || shape.type === 'cone'
+              ? [x, y, z, size, { key: 'h', label: 'Height', min: 0, max: big, step: 1 }, ...turns]
+              : shape.type === 'torus'
+                ? [x, y, z, size, { key: 'tube', label: 'Tube thickness', min: 0, max: big / 2, step: 1 }, ...turns]
+                : shape.type === 'ellipsoid'
+                  ? [x, y, z, { key: 'w', label: 'Width', min: 0, max: big, step: 1 }, { key: 'h', label: 'Height', min: 0, max: big, step: 1 }, { key: 'd', label: 'Depth', min: 0, max: big, step: 1 }, ...turns]
+                  : shape.type === 'plane'
+                    ? [x, y, z, { key: 'w', label: 'Width', min: 0, max: width, step: 1 }, { key: 'h', label: 'Height', min: 0, max: height, step: 1 }, ...turns]
             : [x, y, { key: 'length', label: 'Length', min: 0, max: big, step: 1 }, rotation]
   specs.push(opacity)
   if (usesWeight(shape)) specs.push(weight)
@@ -190,6 +206,10 @@ export function defaultProps(type: ShapeType, x: number, y: number, kind: LightK
   if (type === 'rect') return { ...common, weight: constDriver(4), w: constDriver(100), h: constDriver(60), rotation: constDriver(0) }
   if (type === 'box') return { ...common, z: constDriver(0), w: constDriver(100), h: constDriver(100), d: constDriver(100), ...turns }
   if (type === 'sphere') return { ...common, z: constDriver(0), size: constDriver(100), ...turns }
+  if (type === 'cylinder' || type === 'cone') return { ...common, z: constDriver(0), size: constDriver(80), h: constDriver(120), ...turns }
+  if (type === 'torus') return { ...common, z: constDriver(0), size: constDriver(120), tube: constDriver(30), ...turns }
+  if (type === 'ellipsoid') return { ...common, z: constDriver(0), w: constDriver(140), h: constDriver(80), d: constDriver(100), ...turns }
+  if (type === 'plane') return { ...common, z: constDriver(0), w: constDriver(140), h: constDriver(100), ...turns }
   if (type === 'camera') {
     // p5's own default view: straight on at the distance where one canvas pixel is one world unit at z = 0.
     return {

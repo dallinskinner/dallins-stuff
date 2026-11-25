@@ -68,7 +68,8 @@
 
 /* The add-shape tools stack in the left panel, like Pixel Art's tools. */
 .tools {
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, var(--ui-height));
 }
 
 .panel {

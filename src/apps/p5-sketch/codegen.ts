@@ -178,6 +178,11 @@ function shapeBlock3D(scene: Scene, shape: Shape, k: number, live: boolean): str
     if (shape.type === 'rect') return `rectMode(CENTER); rect(0, 0, ${plus('w')}, ${plus('h')})`
     if (shape.type === 'box') return `box(${plus('w')}, ${plus('h')}, ${plus('d')})`
     if (shape.type === 'sphere') return `sphere(${plus('size / 2', grow / 2)})`
+    if (shape.type === 'cylinder') return `cylinder(${plus('size / 2', grow / 2)}, ${plus('h')})`
+    if (shape.type === 'cone') return `cone(${plus('size / 2', grow / 2)}, ${plus('h')})`
+    if (shape.type === 'torus') return `torus(${plus('size / 2', grow / 2)}, ${plus('tube / 2', grow / 2)})`
+    if (shape.type === 'ellipsoid') return `ellipsoid(${plus('w / 2', grow / 2)}, ${plus('h / 2', grow / 2)}, ${plus('d / 2', grow / 2)})`
+    if (shape.type === 'plane') return `plane(${plus('w')}, ${plus('h')})`
     return 'line(-length / 2, 0, length / 2, 0)'
   }
   out.push(`    ${geometry(0)}`)

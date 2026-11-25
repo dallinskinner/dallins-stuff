@@ -10,6 +10,11 @@ import squareIcon from '../../assets/icons/square.png'
 import lineIcon from '../../assets/icons/line.png'
 import boxIcon from '../../assets/icons/box.png'
 import sphereIcon from '../../assets/icons/sphere.png'
+import cylinderIcon from '../../assets/icons/cylinder.png'
+import coneIcon from '../../assets/icons/cone.png'
+import torusIcon from '../../assets/icons/torus.png'
+import ellipsoidIcon from '../../assets/icons/ellipsoid.png'
+import planeIcon from '../../assets/icons/plane.png'
 import cameraIcon from '../../assets/icons/camera.png'
 import lightIcon from '../../assets/icons/light.png'
 import kebabIcon from '../../assets/icons/kebab.png'
@@ -31,6 +36,11 @@ const ICONS: Record<ShapeType, string> = {
   line: lineIcon,
   box: boxIcon,
   sphere: sphereIcon,
+  cylinder: cylinderIcon,
+  cone: coneIcon,
+  torus: torusIcon,
+  ellipsoid: ellipsoidIcon,
+  plane: planeIcon,
   camera: cameraIcon,
   light: lightIcon,
 }
@@ -41,6 +51,11 @@ const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
   { type: 'line', icon: lineIcon },
   { type: 'box', icon: boxIcon },
   { type: 'sphere', icon: sphereIcon },
+  { type: 'cylinder', icon: cylinderIcon },
+  { type: 'cone', icon: coneIcon },
+  { type: 'torus', icon: torusIcon },
+  { type: 'ellipsoid', icon: ellipsoidIcon },
+  { type: 'plane', icon: planeIcon },
   { type: 'camera', icon: cameraIcon },
   { type: 'light', icon: lightIcon },
 ]
