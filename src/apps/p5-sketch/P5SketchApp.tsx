@@ -3,7 +3,7 @@ import { useMessageTargets } from '../../desktop/WindowManager'
 import { Dropdown } from '../pixel-art/Dropdown'
 import type { LiveParams } from './codegen'
 import { generateSketch } from './codegen'
-import { ScenePanel } from './ScenePanel'
+import { ScenePanel, SceneTools } from './ScenePanel'
 import type { Scene } from './scene'
 import { createDefaultScene } from './scene'
 import { buildDocument } from './sketchDocument'
@@ -341,7 +341,7 @@ export function P5SketchApp() {
 
   return (
     <AppFrame
-      leftWidth="300px"
+      rightWidth={tab === 'gui' ? '300px' : undefined}
       top={
         <>
           <div className={styles.tabs} role="group" aria-label="Mode">
@@ -352,7 +352,6 @@ export function P5SketchApp() {
               Code
             </button>
           </div>
-          <button onClick={restart}>Restart</button>
           {frameTargets.length > 0 && (
             <Dropdown label="Send to" disabled={!run}>
               {frameTargets.map((target) => (
@@ -380,8 +379,14 @@ export function P5SketchApp() {
         </>
       }
       left={
-        tab === 'gui' &&
-        (source === 'scene' ? (
+        tab === 'gui' && source === 'scene' ? (
+          <SceneTools scene={scene} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
+        ) : undefined
+      }
+      right={
+        tab === 'code' ? (
+          preview
+        ) : source === 'scene' ? (
           <ScenePanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
         ) : (
           <div className={styles.panel}>
@@ -392,20 +397,22 @@ export function P5SketchApp() {
               </button>
             </p>
           </div>
-        ))
+        )
       }
-      right={tab === 'code' ? preview : undefined}
       overlay={message && <div className={styles.messages}><p className={styles.message}>{message}</p></div>}
       bottom={
-        logs.length > 0 ? (
-          <pre className={styles.console}>
-            {logs.map((line) => (
-              <div key={line.id} data-level={line.level}>
-                {line.text}
-              </div>
-            ))}
-          </pre>
-        ) : undefined
+        <>
+          <button onClick={restart}>Restart</button>
+          {logs.length > 0 && (
+            <pre className={styles.console}>
+              {logs.map((line) => (
+                <div key={line.id} data-level={line.level}>
+                  {line.text}
+                </div>
+              ))}
+            </pre>
+          )}
+        </>
       }
     >
       {tab === 'code' ? (

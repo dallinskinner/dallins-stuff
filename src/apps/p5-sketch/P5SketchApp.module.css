@@ -66,6 +66,11 @@
   gap: 4px;
 }
 
+/* The add-shape tools stack in the left panel, like Pixel Art's tools. */
+.tools {
+  flex-direction: column;
+}
+
 .panel {
   display: flex;
   flex-direction: column;

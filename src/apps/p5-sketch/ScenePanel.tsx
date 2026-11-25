@@ -2,9 +2,48 @@ import { DialEditor } from './DialEditor'
 import type { Driver, Scene, Shape, ShapeType } from './scene'
 import { MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, duplicateShape, propSpecs } from './scene'
 import { Slider } from './Slider'
+import circleIcon from '../../assets/icons/circle.png'
+import squareIcon from '../../assets/icons/square.png'
+import lineIcon from '../../assets/icons/line.png'
 import styles from './P5SketchApp.module.css'
 
-const SHAPE_TYPES: ShapeType[] = ['circle', 'rect', 'line']
+const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
+  { type: 'circle', icon: circleIcon },
+  { type: 'rect', icon: squareIcon },
+  { type: 'line', icon: lineIcon },
+]
+
+interface SceneToolsProps {
+  scene: Scene
+  onSelect: (id: number | null) => void
+  onScene: (update: (scene: Scene) => Scene) => void
+}
+
+/** The add-a-shape tool column. Each tool adds its shape in the middle of the canvas, ready to be dragged or dialed in. */
+export function SceneTools({ scene, onSelect, onScene }: SceneToolsProps) {
+  function add(type: ShapeType) {
+    const shape = createShape(type, scene.width / 2, scene.height / 2, scene.shapes)
+    onScene((prev) => ({ ...prev, shapes: [...prev.shapes, shape] }))
+    onSelect(shape.id)
+  }
+
+  return (
+    <div className={styles.tools} role="group" aria-label="Add shape">
+      {SHAPE_TOOLS.map(({ type, icon }) => (
+        <button
+          key={type}
+          type="button"
+          data-variant="tool"
+          aria-label={`Add ${SHAPE_LABELS[type].toLowerCase()}`}
+          title={`Add ${SHAPE_LABELS[type].toLowerCase()}`}
+          onClick={() => add(type)}
+        >
+          <span className="ui-icon" style={{ '--icon': `url(${icon})` } as React.CSSProperties} />
+        </button>
+      ))}
+    </div>
+  )
+}
 
 interface ScenePanelProps {
   scene: Scene
@@ -21,13 +60,6 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
 
   const setProp = (shape: Shape, key: string, driver: Driver) =>
     updateShape(shape.id, (current) => ({ ...current, props: { ...current.props, [key]: driver } }))
-
-  /** New shapes start in the middle of the canvas, ready to be dragged or dialed in. */
-  function add(type: ShapeType) {
-    const shape = createShape(type, scene.width / 2, scene.height / 2, scene.shapes)
-    onScene((prev) => ({ ...prev, shapes: [...prev.shapes, shape] }))
-    onSelect(shape.id)
-  }
 
   function move(id: number, direction: -1 | 1) {
     onScene((prev) => {
@@ -61,13 +93,6 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
 
   return (
     <div className={styles.panel}>
-      <div className={styles.tools} role="group" aria-label="Add shape">
-        {SHAPE_TYPES.map((type) => (
-          <button key={type} type="button" onClick={() => add(type)}>
-            + {SHAPE_LABELS[type]}
-          </button>
-        ))}
-      </div>
       <p className={styles.dialHint}>Click a shape on the canvas to select it, and drag to move it.</p>
 
       <details>
