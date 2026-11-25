@@ -8,6 +8,7 @@ import type { Scene } from './scene'
 import { createDefaultScene } from './scene'
 import { buildDocument } from './sketchDocument'
 import { parseSketch, serializeSketch } from './sketchFile'
+import { AppFrame } from '../AppFrame'
 import styles from './P5SketchApp.module.css'
 
 const MAX_LOG_LINES = 100
@@ -308,52 +309,81 @@ export function P5SketchApp() {
   const guiActive = source === 'scene' && tab === 'gui'
   const shown = source === 'scene' ? { width: scene.width, height: scene.height } : size
 
-  return (
-    <div className={styles.app}>
-      <div className={styles.actions}>
-        <div className={styles.tabs} role="group" aria-label="Mode">
-          <button type="button" aria-pressed={tab === 'gui'} onClick={() => setTab('gui')}>
-            GUI
-          </button>
-          <button type="button" aria-pressed={tab === 'code'} onClick={() => setTab('code')}>
-            Code
-          </button>
-        </div>
-        <button onClick={restart}>Restart</button>
-        {frameTargets.length > 0 && (
-          <Dropdown label="Send to" disabled={!run}>
-            {frameTargets.map((target) => (
-              <button key={target.path} type="button" onClick={() => sendTo(target)}>
-                {target.label}
-              </button>
-            ))}
-          </Dropdown>
-        )}
-        <input className={styles.titleInput} value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Sketch name" />
-        <button onClick={saveSketch}>Save</button>
-        <label className="ui-button">
-          Load
-          <input
-            type="file"
-            accept="application/json,.json"
-            className={styles.hiddenFileInput}
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void loadSketch(file)
-              e.target.value = ''
-            }}
+  const preview = (
+    <div className={styles.preview} data-side={tab === 'code' ? 'right' : undefined}>
+      <div
+        className={styles.previewWrap}
+        style={shown ? ({ '--w': `${shown.width}px`, '--h': `${shown.height}px` } as React.CSSProperties) : undefined}
+      >
+        {run && (
+          <iframe
+            key={run.id}
+            ref={iframeRef}
+            className={styles.frame}
+            // Scripts only: no same-origin, so the sketch can't touch this page, its storage or its cookies.
+            sandbox="allow-scripts"
+            srcDoc={run.html}
+            title="Sketch preview"
           />
-        </label>
-      </div>
-
-      {message && <p className={styles.message}>{message}</p>}
-
-      <div className={styles.workspace}>
-        {tab === 'gui' && source === 'scene' && (
-          <ScenePanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
         )}
+        {guiActive && run && (
+          <div
+            className={styles.overlay}
+            onPointerDown={onCanvasPointerDown}
+            onPointerMove={onCanvasPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+          />
+        )}
+      </div>
+    </div>
+  )
 
-        {tab === 'gui' && source === 'code' && (
+  return (
+    <AppFrame
+      leftWidth="300px"
+      top={
+        <>
+          <div className={styles.tabs} role="group" aria-label="Mode">
+            <button type="button" aria-pressed={tab === 'gui'} onClick={() => setTab('gui')}>
+              GUI
+            </button>
+            <button type="button" aria-pressed={tab === 'code'} onClick={() => setTab('code')}>
+              Code
+            </button>
+          </div>
+          <button onClick={restart}>Restart</button>
+          {frameTargets.length > 0 && (
+            <Dropdown label="Send to" disabled={!run}>
+              {frameTargets.map((target) => (
+                <button key={target.path} type="button" onClick={() => sendTo(target)}>
+                  {target.label}
+                </button>
+              ))}
+            </Dropdown>
+          )}
+          <input className={styles.titleInput} value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Sketch name" />
+          <button onClick={saveSketch}>Save</button>
+          <label className="ui-button">
+            Load
+            <input
+              type="file"
+              accept="application/json,.json"
+              className={styles.hiddenFileInput}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void loadSketch(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </>
+      }
+      left={
+        tab === 'gui' &&
+        (source === 'scene' ? (
+          <ScenePanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
+        ) : (
           <div className={styles.panel}>
             <p className={styles.notice}>
               This sketch was converted to code, so the dials no longer drive it.
@@ -362,77 +392,54 @@ export function P5SketchApp() {
               </button>
             </p>
           </div>
-        )}
-
-        {tab === 'code' && (
-          <div className={styles.codeColumn}>
-            {source === 'scene' ? (
-              <p className={styles.notice}>
-                This is the code your scene generates. Convert it to take over by hand; the dials will stop driving the sketch.
-                <button type="button" onClick={convertToCode}>
-                  Convert to editable code
-                </button>
-              </p>
-            ) : (
-              <p className={styles.notice}>
-                Edit freely and press Ctrl/Cmd+Enter to run.
-                <button type="button" onClick={backToScene}>
-                  Back to the scene
-                </button>
-              </p>
-            )}
-            <textarea
-              className={styles.editor}
-              value={source === 'scene' ? flatCode : code}
-              readOnly={source === 'scene'}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={codeKeyDown}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
-              aria-label="Sketch code"
-            />
-          </div>
-        )}
-
-        <div className={styles.preview}>
-          <div
-            className={styles.previewWrap}
-            style={shown ? ({ '--w': `${shown.width}px`, '--h': `${shown.height}px` } as React.CSSProperties) : undefined}
-          >
-            {run && (
-              <iframe
-                key={run.id}
-                ref={iframeRef}
-                className={styles.frame}
-                // Scripts only: no same-origin, so the sketch can't touch this page, its storage or its cookies.
-                sandbox="allow-scripts"
-                srcDoc={run.html}
-                title="Sketch preview"
-              />
-            )}
-            {guiActive && run && (
-              <div
-                className={styles.overlay}
-                onPointerDown={onCanvasPointerDown}
-                onPointerMove={onCanvasPointerMove}
-                onPointerUp={endDrag}
-                onPointerCancel={endDrag}
-              />
-            )}
-          </div>
+        ))
+      }
+      right={tab === 'code' ? preview : undefined}
+      overlay={message && <div className={styles.messages}><p className={styles.message}>{message}</p></div>}
+      bottom={
+        logs.length > 0 ? (
+          <pre className={styles.console}>
+            {logs.map((line) => (
+              <div key={line.id} data-level={line.level}>
+                {line.text}
+              </div>
+            ))}
+          </pre>
+        ) : undefined
+      }
+    >
+      {tab === 'code' ? (
+        <div className={styles.codeColumn}>
+          {source === 'scene' ? (
+            <p className={styles.notice}>
+              This is the code your scene generates. Convert it to take over by hand; the dials will stop driving the sketch.
+              <button type="button" onClick={convertToCode}>
+                Convert to editable code
+              </button>
+            </p>
+          ) : (
+            <p className={styles.notice}>
+              Edit freely and press Ctrl/Cmd+Enter to run.
+              <button type="button" onClick={backToScene}>
+                Back to the scene
+              </button>
+            </p>
+          )}
+          <textarea
+            className={styles.editor}
+            value={source === 'scene' ? flatCode : code}
+            readOnly={source === 'scene'}
+            onChange={(e) => setCode(e.target.value)}
+            onKeyDown={codeKeyDown}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            aria-label="Sketch code"
+          />
         </div>
-      </div>
-
-      {logs.length > 0 && (
-        <pre className={styles.console}>
-          {logs.map((line) => (
-            <div key={line.id} data-level={line.level}>
-              {line.text}
-            </div>
-          ))}
-        </pre>
+      ) : (
+        preview
       )}
-    </div>
+    </AppFrame>
   )
 }

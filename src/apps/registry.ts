@@ -47,7 +47,7 @@ export const apps: AppDefinition[] = [
       { id: 'image-tools', label: 'Image Tools', icon: imageToolsIcon, component: ImageToolsApp, defaultSize: { width: 900, height: 640 } },
       { id: 'color-palette', label: 'Color Palette', icon: colorPaletteIcon, component: ColorPaletteApp, defaultSize: { width: 800, height: 560 }, accepts: ['palette'] },
       { id: 'dither', label: 'Dither', icon: gradientIcon, component: DitherApp, defaultSize: { width: 900, height: 640 }, accepts: ['frame-source', 'palette'] },
-      { id: 'p5-sketch', label: 'p5 Sketch', icon: curveIcon, component: P5SketchApp, windowMaxWidth: '90vw' },
+      { id: 'p5-sketch', label: 'p5 Sketch', icon: curveIcon, component: P5SketchApp, defaultSize: { width: 1000, height: 700 } },
     ],
   },
   {
