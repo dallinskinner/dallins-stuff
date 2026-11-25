@@ -417,21 +417,6 @@ export function P5SketchApp() {
         {preview}
         {tab === 'code' && (
           <div className={styles.codeColumn}>
-            {source === 'scene' ? (
-              <p className={styles.notice}>
-                This is the code your scene generates. Convert it to take over by hand; the dials will stop driving the sketch.
-                <button type="button" onClick={convertToCode}>
-                  Convert to editable code
-                </button>
-              </p>
-            ) : (
-              <p className={styles.notice}>
-                Edit freely and press Ctrl/Cmd+Enter to run.
-                <button type="button" onClick={backToScene}>
-                  Back to the scene
-                </button>
-              </p>
-            )}
             <textarea
               className={styles.editor}
               value={source === 'scene' ? flatCode : code}
@@ -443,6 +428,20 @@ export function P5SketchApp() {
               autoCorrect="off"
               aria-label="Sketch code"
             />
+            <div className={styles.editorActions}>
+              {source === 'scene' ? (
+                <button type="button" onClick={convertToCode}>
+                  Convert to editable code
+                </button>
+              ) : (
+                <>
+                  <button type="button" onClick={backToScene}>
+                    Back to the scene
+                  </button>
+                  <span className={styles.dialHint}>Edit freely and press Ctrl/Cmd+Enter to run.</span>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

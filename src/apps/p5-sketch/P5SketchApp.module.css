@@ -232,3 +232,10 @@
   min-height: 0;
   max-height: 60%;
 }
+
+.editorActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--padding);
+}
