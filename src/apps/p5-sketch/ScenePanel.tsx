@@ -144,7 +144,8 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
     onScene((prev) => ({ ...prev, [key]: Math.min(MAX_CANVAS, Math.max(MIN_CANVAS, Math.round(value))) }))
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.scenePanel}>
+      <div className={styles.sceneTop}>
       <details>
         <summary>Canvas</summary>
         <div className="ui-details-body">
@@ -212,6 +213,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
           </li>
         ))}
       </ol>
+      </div>
 
       {selected && (
         <section className={styles.inspector} aria-label={`${selected.name} settings`}>

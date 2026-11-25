@@ -87,14 +87,41 @@
   margin: 0;
 }
 
+/* The scene panel: the canvas settings and layers fill the top and scroll on their own; the selected layer's settings are pinned below. */
+.scenePanel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--padding);
+  min-height: 0;
+}
+
+.sceneTop {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--padding);
+  min-height: 0;
+  overflow-y: auto;
+  /* The inset gives focus rings room inside the scroll area, which would clip them; the negative margin keeps the content where it was. */
+  margin: -4px;
+  padding: 4px;
+}
+
 /* The selected layer's settings live in one box, headed like the selected row so the two read as a pair. */
 .inspector {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 65%;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius);
 }
 
 .inspectorHeader {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 4px;
   padding: 3px 8px 3px 4px;
@@ -106,7 +133,9 @@
 .inspectorBody {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   padding: var(--padding);
+  overflow-y: auto;
 }
 
 /* The layers read like a layers panel: one bordered list, rows touching, each a thumbnail, a name and a menu. */
