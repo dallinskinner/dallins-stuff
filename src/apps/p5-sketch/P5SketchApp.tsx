@@ -310,12 +310,12 @@ export function P5SketchApp() {
       }
       left={
         tab === 'gui' && source === 'scene' ? (
-          <SceneTools scene={scene} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
+          <SceneTools scene={scene} onSelect={setSelectedId} onScene={(update) => setScene(update)} onMessage={setMessage} />
         ) : undefined
       }
       right={
         tab === 'code' ? undefined : source === 'scene' ? (
-          <ScenePanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} onScene={(update) => setScene(update)} />
+          <ScenePanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} onScene={(update) => setScene(update)} onMessage={setMessage} />
         ) : (
           <div className={styles.panel}>
             <p className={styles.notice}>

@@ -1,3 +1,6 @@
+import type { ObjModel } from './objModel'
+import { MAX_MODEL_BYTES, prepareObj } from './objModel'
+
 /** The GUI mode's model: a stack of shapes whose properties are each driven by a constant, a wave or an expression.
  *  `codegen.ts` turns it into p5 code. */
 
@@ -62,7 +65,7 @@ export interface ExprDriver {
 
 export type Driver = ConstDriver | WaveDriver | LinearDriver | ExprDriver
 
-export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'ellipsoid' | 'plane' | 'camera' | 'light'
+export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'ellipsoid' | 'plane' | 'model' | 'camera' | 'light'
 export const SHAPE_LABELS: Record<ShapeType, string> = {
   circle: 'Circle',
   rect: 'Rectangle',
@@ -74,6 +77,7 @@ export const SHAPE_LABELS: Record<ShapeType, string> = {
   torus: 'Torus',
   ellipsoid: 'Ellipsoid',
   plane: 'Plane',
+  model: 'Model',
   camera: 'Camera',
   light: 'Light',
 }
@@ -90,7 +94,7 @@ const LIGHT_LABELS = Object.fromEntries(LIGHT_KINDS.map((k) => [k.id, k.label]))
 export const isSceneObject = (type: ShapeType) => type === 'camera' || type === 'light'
 /** Everything that only exists in a 3D scene. */
 /** The shapes that are drawn in 3D (as opposed to the camera and lights). */
-export const SHAPES_3D: ShapeType[] = ['box', 'sphere', 'cylinder', 'cone', 'torus', 'ellipsoid', 'plane']
+export const SHAPES_3D: ShapeType[] = ['box', 'sphere', 'cylinder', 'cone', 'torus', 'ellipsoid', 'plane', 'model']
 export const is3D = (type: ShapeType) => SHAPES_3D.includes(type) || isSceneObject(type)
 
 export type SceneMode = '2d' | '3d'
@@ -100,6 +104,8 @@ export interface Shape {
   type: ShapeType
   /** Which kind of light, for `type: 'light'`. */
   kind?: LightKind
+  /** The loaded .obj, for `type: 'model'`. */
+  model?: ObjModel
   name: string
   color: string
   /** Stroke instead of fill. Lines are always strokes. */
@@ -186,6 +192,8 @@ export function propSpecs(shape: Pick<Shape, 'type' | 'outline' | 'kind'>, scene
                 ? [x, y, z, size, { key: 'tube', label: 'Tube thickness', min: 0, max: big / 2, step: 1 }, ...turns]
                 : shape.type === 'ellipsoid'
                   ? [x, y, z, { key: 'w', label: 'Width', min: 0, max: big, step: 1 }, { key: 'h', label: 'Height', min: 0, max: big, step: 1 }, { key: 'd', label: 'Depth', min: 0, max: big, step: 1 }, ...turns]
+                  : shape.type === 'model'
+                    ? [x, y, z, size, ...turns]
                   : shape.type === 'plane'
                     ? [x, y, z, { key: 'w', label: 'Width', min: 0, max: width, step: 1 }, { key: 'h', label: 'Height', min: 0, max: height, step: 1 }, ...turns]
             : [x, y, { key: 'length', label: 'Length', min: 0, max: big, step: 1 }, rotation]
@@ -209,6 +217,7 @@ export function defaultProps(type: ShapeType, x: number, y: number, kind: LightK
   if (type === 'cylinder' || type === 'cone') return { ...common, z: constDriver(0), size: constDriver(80), h: constDriver(120), ...turns }
   if (type === 'torus') return { ...common, z: constDriver(0), size: constDriver(120), tube: constDriver(30), ...turns }
   if (type === 'ellipsoid') return { ...common, z: constDriver(0), w: constDriver(140), h: constDriver(80), d: constDriver(100), ...turns }
+  if (type === 'model') return { ...common, z: constDriver(0), size: constDriver(160), ...turns }
   if (type === 'plane') return { ...common, z: constDriver(0), w: constDriver(140), h: constDriver(100), ...turns }
   if (type === 'camera') {
     // p5's own default view: straight on at the distance where one canvas pixel is one world unit at z = 0.
@@ -232,7 +241,7 @@ export function defaultProps(type: ShapeType, x: number, y: number, kind: LightK
 
 let nextShapeId = 1
 
-export function createShape(type: ShapeType, x: number, y: number, existing: Shape[], kind: LightKind = 'directional'): Shape {
+export function createShape(type: ShapeType, x: number, y: number, existing: Shape[], kind: LightKind = 'directional', model?: ObjModel): Shape {
   const lightKind = type === 'light' ? kind : undefined
   const label = lightKind ? LIGHT_LABELS[lightKind] : SHAPE_LABELS[type]
   const count = existing.filter((shape) => shape.type === type && shape.kind === lightKind).length + 1
@@ -240,8 +249,9 @@ export function createShape(type: ShapeType, x: number, y: number, existing: Sha
     id: nextShapeId++,
     type,
     ...(lightKind ? { kind: lightKind } : {}),
+    ...(model ? { model } : {}),
     // The camera is one-of-a-kind, so it needs no number.
-    name: type === 'camera' ? label : `${label} ${count}`,
+    name: type === 'camera' ? label : model ? model.name : `${label} ${count}`,
     color: '#ffffff',
     outline: false,
     repeat: 1,
@@ -357,6 +367,17 @@ export function sanitizeScene(raw: unknown): Scene {
     if (type === 'camera' && shapes.some((shape) => shape.type === 'camera')) continue
     const kind: LightKind | undefined =
       type === 'light' ? (LIGHT_KINDS.some((k) => k.id === entry.kind) ? (entry.kind as LightKind) : 'directional') : undefined
+    // A model layer is nothing without its file, so one whose file is missing or unreadable is dropped.
+    let model: ObjModel | undefined
+    if (type === 'model') {
+      const given = entry.model
+      if (!isRecord(given) || typeof given.data !== 'string' || given.data.length > MAX_MODEL_BYTES) continue
+      try {
+        model = prepareObj(given.data, typeof given.name === 'string' ? given.name : 'Model')
+      } catch {
+        continue
+      }
+    }
     const defaults = defaultProps(type, width / 2, height / 2, kind)
     const given = isRecord(entry.props) ? entry.props : {}
     const props: Record<string, Driver> = {}
@@ -365,6 +386,7 @@ export function sanitizeScene(raw: unknown): Scene {
       id: nextShapeId++,
       type,
       ...(kind ? { kind } : {}),
+      ...(model ? { model } : {}),
       name: typeof entry.name === 'string' ? entry.name : kind ? LIGHT_LABELS[kind] : SHAPE_LABELS[type],
       color: typeof entry.color === 'string' && HEX.test(entry.color) ? entry.color : '#ffffff',
       outline: entry.outline === true,

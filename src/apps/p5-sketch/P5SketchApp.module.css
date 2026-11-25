@@ -407,3 +407,16 @@
   color: color-mix(in srgb, var(--foreground) 38%, transparent);
   font-size: var(--ui-label-size);
 }
+
+.modelInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modelName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Dropdown } from '../pixel-art/Dropdown'
 import { DialEditor } from './DialEditor'
+import { readObjFile } from './objModel'
 import type { Driver, Scene, Shape, ShapeType } from './scene'
 import type { LightKind } from './scene'
 import { LIGHT_KINDS, MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, defaultLights, defaultProps, duplicateShape, is3D, isSceneObject, propSpecs } from './scene'
@@ -15,6 +16,7 @@ import coneIcon from '../../assets/icons/cone.png'
 import torusIcon from '../../assets/icons/torus.png'
 import ellipsoidIcon from '../../assets/icons/ellipsoid.png'
 import planeIcon from '../../assets/icons/plane.png'
+import modelIcon from '../../assets/icons/model.png'
 import cameraIcon from '../../assets/icons/camera.png'
 import lightIcon from '../../assets/icons/light.png'
 import kebabIcon from '../../assets/icons/kebab.png'
@@ -41,6 +43,7 @@ const ICONS: Record<ShapeType, string> = {
   torus: torusIcon,
   ellipsoid: ellipsoidIcon,
   plane: planeIcon,
+  model: modelIcon,
   camera: cameraIcon,
   light: lightIcon,
 }
@@ -56,6 +59,7 @@ const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
   { type: 'torus', icon: torusIcon },
   { type: 'ellipsoid', icon: ellipsoidIcon },
   { type: 'plane', icon: planeIcon },
+  { type: 'model', icon: modelIcon },
   { type: 'camera', icon: cameraIcon },
   { type: 'light', icon: lightIcon },
 ]
@@ -64,10 +68,13 @@ interface SceneToolsProps {
   scene: Scene
   onSelect: (id: number | null) => void
   onScene: (update: (scene: Scene) => Scene) => void
+  /** Reports a problem (or clears it with null), for example a model file that can't be used. */
+  onMessage: (message: string | null) => void
 }
 
 /** The add-a-shape tool column. Each tool adds its shape in the middle of the canvas, ready to be dragged or dialed in. */
-export function SceneTools({ scene, onSelect, onScene }: SceneToolsProps) {
+export function SceneTools({ scene, onSelect, onScene, onMessage }: SceneToolsProps) {
+  const modelInputRef = useRef<HTMLInputElement>(null)
   const hasCamera = scene.shapes.some((shape) => shape.type === 'camera')
 
   function add(type: ShapeType) {
@@ -76,17 +83,41 @@ export function SceneTools({ scene, onSelect, onScene }: SceneToolsProps) {
     onSelect(shape.id)
   }
 
+  /** A model layer starts from a chosen .obj file, so its tool opens the file picker instead of adding straight away. */
+  async function addModel(file: File) {
+    try {
+      const model = await readObjFile(file)
+      const shape = createShape('model', scene.width / 2, scene.height / 2, scene.shapes, 'point', model)
+      onScene((prev) => ({ ...prev, shapes: [...prev.shapes, shape] }))
+      onSelect(shape.id)
+      onMessage(null)
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : 'Could not read that model.')
+    }
+  }
+
   return (
     <div className={styles.tools} role="group" aria-label="Add shape">
+      <input
+        ref={modelInputRef}
+        type="file"
+        accept=".obj"
+        className={styles.hiddenFileInput}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void addModel(file)
+          e.target.value = ''
+        }}
+      />
       {SHAPE_TOOLS.filter(({ type }) => scene.mode === '3d' || !is3D(type)).map(({ type, icon }) => (
         <button
           key={type}
           type="button"
           data-variant="tool"
           aria-label={`Add ${SHAPE_LABELS[type].toLowerCase()}`}
-          title={type === 'camera' && hasCamera ? 'The scene already has a camera' : `Add ${SHAPE_LABELS[type].toLowerCase()}`}
+          title={type === 'camera' && hasCamera ? 'The scene already has a camera' : type === 'model' ? 'Add a 3D model (.obj file)' : `Add ${SHAPE_LABELS[type].toLowerCase()}`}
           disabled={type === 'camera' && hasCamera}
-          onClick={() => add(type)}
+          onClick={() => (type === 'model' ? modelInputRef.current?.click() : add(type))}
         >
           <span className="ui-icon" style={{ '--icon': `url(${icon})` } as React.CSSProperties} />
         </button>
@@ -100,9 +131,11 @@ interface ScenePanelProps {
   selectedId: number | null
   onSelect: (id: number | null) => void
   onScene: (update: (scene: Scene) => Scene) => void
+  onMessage: (message: string | null) => void
 }
 
-export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelProps) {
+export function ScenePanel({ scene, selectedId, onSelect, onScene, onMessage }: ScenePanelProps) {
+  const replaceModelRef = useRef<HTMLInputElement>(null)
   /** Which setting's accordion row is open, as `layerId:key`. A different layer's id never matches, so switching layers closes it. */
   const [openSetting, setOpenSetting] = useState<string | null>(null)
   const selected = scene.shapes.find((shape) => shape.id === selectedId) ?? null
@@ -247,6 +280,40 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
           </header>
           <div className={`ui-fields ${styles.inspectorBody}`}>
           <input className={styles.nameInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Layer name" />
+          {selected.type === 'model' && selected.model && (
+            <div className="ui-field">
+              <span className="ui-field-header">Model file</span>
+              <span className={styles.modelInfo}>
+                <span className={styles.modelName} title={selected.model.name}>
+                  {selected.model.name}.obj
+                </span>
+                <small>
+                  {selected.model.vertices.toLocaleString()} vertices · {selected.model.faces.toLocaleString()} faces
+                </small>
+              </span>
+              <button type="button" onClick={() => replaceModelRef.current?.click()}>
+                Replace file…
+              </button>
+              <input
+                ref={replaceModelRef}
+                type="file"
+                accept=".obj"
+                className={styles.hiddenFileInput}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  try {
+                    const model = await readObjFile(file)
+                    updateShape(selected.id, (current) => ({ ...current, model }))
+                    onMessage(null)
+                  } catch (error) {
+                    onMessage(error instanceof Error ? error.message : 'Could not read that model.')
+                  }
+                }}
+              />
+            </div>
+          )}
           {selected.type === 'light' && (
             <label className="ui-field">
               <span className="ui-field-header">Type</span>

@@ -73,9 +73,17 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
   const usesEasing = scene.shapes.some((shape) =>
     Object.values(shape.props).some((d) => ((d.kind === 'wave' || d.kind === 'linear') && d.ease !== 'none') || (d.kind === 'expr' && d.source.includes('E.'))),
   )
-  lines.push(HELPERS, '')
-  if (live || usesEasing) lines.push(EASING_HELPERS, '')
   const is3d = scene.mode === '3d'
+  lines.push(HELPERS, '')
+  // Loaded models: their OBJ text rides in the sketch and is turned into a blob URL inside the preview (which can't reach any file).
+  const models = scene.shapes.flatMap((shape, k) => (shape.type === 'model' && shape.model ? [{ k, data: shape.model.data }] : []))
+  if (is3d && models.length > 0) {
+    lines.push(...models.map(({ k, data }) => `const MODEL_${k} = ${JSON.stringify(data)}`), `let ${models.map(({ k }) => `model${k}`).join(', ')}`, '')
+    lines.push('function preload() {')
+    for (const { k } of models) lines.push(`  model${k} = loadModel(URL.createObjectURL(new Blob([MODEL_${k}], { type: 'text/plain' })), { normalize: true, fileType: '.obj' })`)
+    lines.push('}', '')
+  }
+  if (live || usesEasing) lines.push(EASING_HELPERS, '')
   lines.push('function setup() {', `  createCanvas(${scene.width}, ${scene.height}${is3d ? ', WEBGL' : ''})`, '}', '', 'function draw() {')
   lines.push('  const t = millis() / 1000 // seconds since the sketch started')
   lines.push(`  const p = (t / ${live ? 'P.loop' : num(scene.loop)}) % 1 // 0 to 1 through the loop`)
@@ -183,6 +191,8 @@ function shapeBlock3D(scene: Scene, shape: Shape, k: number, live: boolean): str
     if (shape.type === 'torus') return `torus(${plus('size / 2', grow / 2)}, ${plus('tube / 2', grow / 2)})`
     if (shape.type === 'ellipsoid') return `ellipsoid(${plus('w / 2', grow / 2)}, ${plus('h / 2', grow / 2)}, ${plus('d / 2', grow / 2)})`
     if (shape.type === 'plane') return `plane(${plus('w')}, ${plus('h')})`
+    // p5 normalizes a model so its longest side is 200 units, so the size dial (that side's length) scales it by size / 200; the guide scales that again, relative.
+    if (shape.type === 'model') return `${grow === 0 ? 'scale(size / 200)' : `scale((size + ${grow}) / max(size, 1))`}; model(model${k})`
     return 'line(-length / 2, 0, length / 2, 0)'
   }
   out.push(`    ${geometry(0)}`)
