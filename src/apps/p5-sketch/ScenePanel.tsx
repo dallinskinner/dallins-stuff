@@ -93,8 +93,6 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
 
   return (
     <div className={styles.panel}>
-      <p className={styles.dialHint}>Click a shape on the canvas to select it, and drag to move it.</p>
-
       <details>
         <summary>Canvas</summary>
         <div className="ui-details-body">
