@@ -1,16 +1,20 @@
 import { DialEditor } from './DialEditor'
 import type { Driver, Scene, Shape, ShapeType } from './scene'
-import { MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, duplicateShape, propSpecs } from './scene'
+import { MAX_CANVAS, MAX_REPEAT, MIN_CANVAS, SHAPE_LABELS, createShape, duplicateShape, is3D, propSpecs } from './scene'
 import { Slider } from './Slider'
 import circleIcon from '../../assets/icons/circle.png'
 import squareIcon from '../../assets/icons/square.png'
 import lineIcon from '../../assets/icons/line.png'
+import boxIcon from '../../assets/icons/box.png'
+import sphereIcon from '../../assets/icons/sphere.png'
 import styles from './P5SketchApp.module.css'
 
 const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
   { type: 'circle', icon: circleIcon },
   { type: 'rect', icon: squareIcon },
   { type: 'line', icon: lineIcon },
+  { type: 'box', icon: boxIcon },
+  { type: 'sphere', icon: sphereIcon },
 ]
 
 interface SceneToolsProps {
@@ -29,7 +33,7 @@ export function SceneTools({ scene, onSelect, onScene }: SceneToolsProps) {
 
   return (
     <div className={styles.tools} role="group" aria-label="Add shape">
-      {SHAPE_TOOLS.map(({ type, icon }) => (
+      {SHAPE_TOOLS.filter(({ type }) => scene.mode === '3d' || !is3D(type)).map(({ type, icon }) => (
         <button
           key={type}
           type="button"
@@ -88,6 +92,9 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
     if (selectedId === id) onSelect(null)
   }
 
+  /** A 2D scene can't draw 3D shapes, so the mode is locked to 3D while any exist. */
+  const has3DShapes = scene.shapes.some((shape) => is3D(shape.type))
+
   const canvasSize = (key: 'width' | 'height', value: number) =>
     onScene((prev) => ({ ...prev, [key]: Math.min(MAX_CANVAS, Math.max(MIN_CANVAS, Math.round(value))) }))
 
@@ -96,6 +103,21 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
       <details>
         <summary>Canvas</summary>
         <div className="ui-details-body">
+          <label className="ui-field">
+            <span className="ui-field-header">Mode</span>
+            <select value={scene.mode} onChange={(e) => onScene((prev) => ({ ...prev, mode: e.target.value as Scene['mode'] }))}>
+              <option value="2d" disabled={has3DShapes}>
+                2D
+              </option>
+              <option value="3d">3D</option>
+            </select>
+          </label>
+          {scene.mode === '3d' && (
+            <label className="ui-check">
+              <input type="checkbox" checked={scene.lights} onChange={(e) => onScene((prev) => ({ ...prev, lights: e.target.checked }))} />
+              Lights
+            </label>
+          )}
           <label className="ui-field">
             <span className="ui-field-header">Size</span>
             <span className={styles.sizeInputs}>
@@ -146,7 +168,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
           {selected.type !== 'line' && (
             <label className="ui-check">
               <input type="checkbox" checked={selected.outline} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, outline: e.target.checked }))} />
-              Outline only
+              {is3D(selected.type) ? 'Wireframe' : 'Outline only'}
             </label>
           )}
           <Slider label="Copies" value={selected.repeat} min={1} max={32} step={1} onChange={(repeat) => updateShape(selected.id, (s) => ({ ...s, repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(repeat))) }))} />

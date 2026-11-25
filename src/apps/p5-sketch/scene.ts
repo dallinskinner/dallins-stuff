@@ -47,8 +47,14 @@ export interface ExprDriver {
 
 export type Driver = ConstDriver | WaveDriver | ExprDriver
 
-export type ShapeType = 'circle' | 'rect' | 'line'
-export const SHAPE_LABELS: Record<ShapeType, string> = { circle: 'Circle', rect: 'Rectangle', line: 'Line' }
+export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere'
+export const SHAPE_LABELS: Record<ShapeType, string> = { circle: 'Circle', rect: 'Rectangle', line: 'Line', box: 'Box', sphere: 'Sphere' }
+
+/** Shapes that only exist in a 3D scene. */
+export const SHAPES_3D: ShapeType[] = ['box', 'sphere']
+export const is3D = (type: ShapeType) => SHAPES_3D.includes(type)
+
+export type SceneMode = '2d' | '3d'
 
 export interface Shape {
   id: number
@@ -62,6 +68,10 @@ export interface Shape {
 }
 
 export interface Scene {
+  /** A 3D scene draws on a WEBGL canvas: x and y stay in canvas pixels, and 3D shapes add z and rotation on every axis. */
+  mode: SceneMode
+  /** 3D only: light the shapes (otherwise they're flat-colored). */
+  lights: boolean
   width: number
   height: number
   background: string
@@ -82,7 +92,7 @@ export interface PropSpec {
   step: number
 }
 
-/** Whether a shape's `weight` prop is used: outlined shapes and lines. */
+/** Whether a shape's `weight` prop is used: outlined shapes (wireframes, in 3D) and lines. */
 export function usesWeight(shape: Pick<Shape, 'type' | 'outline'>): boolean {
   return shape.type === 'line' || shape.outline
 }
@@ -96,12 +106,22 @@ export function propSpecs(shape: Pick<Shape, 'type' | 'outline'>, scene: Pick<Sc
   const rotation: PropSpec = { key: 'rotation', label: 'Rotation', min: -360, max: 360, step: 1 }
   const opacity: PropSpec = { key: 'opacity', label: 'Opacity', min: 0, max: 1, step: 0.01 }
   const weight: PropSpec = { key: 'weight', label: 'Line weight', min: 0, max: 40, step: 0.5 }
+  const z: PropSpec = { key: 'z', label: 'Z', min: -big, max: big, step: 1 }
+  const turns: PropSpec[] = [
+    { key: 'rotX', label: 'Rotate X', min: -360, max: 360, step: 1 },
+    { key: 'rotY', label: 'Rotate Y', min: -360, max: 360, step: 1 },
+    { key: 'rotZ', label: 'Rotate Z', min: -360, max: 360, step: 1 },
+  ]
   const specs: PropSpec[] =
     shape.type === 'circle'
       ? [x, y, { key: 'size', label: 'Size', min: 0, max: big, step: 1 }]
       : shape.type === 'rect'
         ? [x, y, { key: 'w', label: 'Width', min: 0, max: width, step: 1 }, { key: 'h', label: 'Height', min: 0, max: height, step: 1 }, rotation]
-        : [x, y, { key: 'length', label: 'Length', min: 0, max: big, step: 1 }, rotation]
+        : shape.type === 'box'
+          ? [x, y, z, { key: 'w', label: 'Width', min: 0, max: width, step: 1 }, { key: 'h', label: 'Height', min: 0, max: height, step: 1 }, { key: 'd', label: 'Depth', min: 0, max: big, step: 1 }, ...turns]
+          : shape.type === 'sphere'
+            ? [x, y, z, { key: 'size', label: 'Size', min: 0, max: big, step: 1 }, ...turns]
+            : [x, y, { key: 'length', label: 'Length', min: 0, max: big, step: 1 }, rotation]
   specs.push(opacity)
   if (usesWeight(shape)) specs.push(weight)
   return specs
@@ -113,10 +133,13 @@ export function constDriver(value: number): ConstDriver {
 
 /** Dials for a new shape placed at (x, y). */
 export function defaultProps(type: ShapeType, x: number, y: number): Record<string, Driver> {
-  const common = { x: constDriver(x), y: constDriver(y), opacity: constDriver(1), weight: constDriver(4) }
-  if (type === 'circle') return { ...common, size: constDriver(80) }
-  if (type === 'rect') return { ...common, w: constDriver(100), h: constDriver(60), rotation: constDriver(0) }
-  return { ...common, length: constDriver(120), rotation: constDriver(0) }
+  const common = { x: constDriver(x), y: constDriver(y), opacity: constDriver(1), weight: constDriver(1) }
+  const turns = { rotX: constDriver(0), rotY: constDriver(0), rotZ: constDriver(0) }
+  if (type === 'circle') return { ...common, weight: constDriver(4), size: constDriver(80) }
+  if (type === 'rect') return { ...common, weight: constDriver(4), w: constDriver(100), h: constDriver(60), rotation: constDriver(0) }
+  if (type === 'box') return { ...common, z: constDriver(0), w: constDriver(100), h: constDriver(100), d: constDriver(100), ...turns }
+  if (type === 'sphere') return { ...common, z: constDriver(0), size: constDriver(100), ...turns }
+  return { ...common, weight: constDriver(4), length: constDriver(120), rotation: constDriver(0) }
 }
 
 let nextShapeId = 1
@@ -173,7 +196,7 @@ export function convertDriver(driver: Driver, kind: DriverKind, spec: PropSpec):
 
 /** A new sketch starts as a blank canvas. */
 export function createDefaultScene(): Scene {
-  return { width: 400, height: 400, background: '#141414', loop: 6, shapes: [] }
+  return { mode: '2d', lights: true, width: 400, height: 400, background: '#141414', loop: 6, shapes: [] }
 }
 
 // --- Loading from a file: coerce whatever's there into something safe to generate code from. ---
@@ -208,8 +231,8 @@ export function sanitizeScene(raw: unknown): Scene {
   const clampCanvas = (value: unknown) => Math.min(MAX_CANVAS, Math.max(MIN_CANVAS, Math.round(finite(value, 400))))
   const shapes: Shape[] = []
   for (const entry of raw.shapes) {
-    if (!isRecord(entry) || (entry.type !== 'circle' && entry.type !== 'rect' && entry.type !== 'line')) continue
-    const type: ShapeType = entry.type
+    if (!isRecord(entry) || typeof entry.type !== 'string' || !(entry.type in SHAPE_LABELS)) continue
+    const type = entry.type as ShapeType
     const defaults = defaultProps(type, 0, 0)
     const given = isRecord(entry.props) ? entry.props : {}
     const props: Record<string, Driver> = {}
@@ -224,7 +247,11 @@ export function sanitizeScene(raw: unknown): Scene {
       props,
     })
   }
+  // A scene is 3D only if it says so; older files have no mode. Any 3D shape in a 2D file would be undrawable, so it forces 3D.
+  const mode: SceneMode = raw.mode === '3d' || shapes.some((shape) => is3D(shape.type)) ? '3d' : '2d'
   return {
+    mode,
+    lights: raw.lights !== false,
     width: clampCanvas(raw.width),
     height: clampCanvas(raw.height),
     background: typeof raw.background === 'string' && HEX.test(raw.background) ? raw.background : '#141414',

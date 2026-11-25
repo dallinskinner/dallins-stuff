@@ -306,7 +306,8 @@ export function P5SketchApp() {
     dragRef.current = null
   }
 
-  const guiActive = source === 'scene' && tab === 'gui'
+  // Picking and dragging on the canvas is 2D-only for now; 3D shapes are selected from the layers list.
+  const guiActive = source === 'scene' && tab === 'gui' && scene.mode === '2d'
   const shown = source === 'scene' ? { width: scene.width, height: scene.height } : size
 
   const preview = (

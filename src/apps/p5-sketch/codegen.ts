@@ -76,17 +76,20 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
   )
   lines.push(HELPERS, '')
   if (live || usesEasing) lines.push(EASING_HELPERS, '')
-  lines.push('function setup() {', `  createCanvas(${scene.width}, ${scene.height})`, '}', '', 'function draw() {')
+  const is3d = scene.mode === '3d'
+  lines.push('function setup() {', `  createCanvas(${scene.width}, ${scene.height}${is3d ? ', WEBGL' : ''})`, '}', '', 'function draw() {')
   lines.push('  const t = millis() / 1000 // seconds since the sketch started')
   lines.push(`  const p = (t / ${live ? 'P.loop' : num(scene.loop)}) % 1 // 0 to 1 through the loop`)
   lines.push(`  background(${live ? 'P.bg' : JSON.stringify(scene.background)})`)
   if (live) lines.push('  HITS.length = 0')
+  // Lights are set every frame; without them 3D shapes are flat-colored. Directional light comes from the upper left, in front.
+  if (is3d && scene.lights) lines.push('  ambientLight(110)', '  directionalLight(255, 255, 255, 0.4, 0.6, -0.8)')
 
   scene.shapes.forEach((shape, k) => {
     lines.push('', ...shapeBlock(scene, shape, k, live))
   })
 
-  if (live) {
+  if (live && !is3d) {
     lines.push(
       '',
       '  if (P.guides) {',
@@ -125,7 +128,44 @@ function driverExpression(k: number, key: string, driver: Driver, live: boolean)
   return `${ref('center', driver.center)} + ${ref('amp', driver.amp)} * ${wave}${step}`
 }
 
+/** A 3D scene's shape: WEBGL puts the origin at the middle of the canvas, so x and y are shifted to stay in canvas pixels. */
+function shapeBlock3D(scene: Scene, shape: Shape, k: number, live: boolean): string[] {
+  const specs = propSpecs(shape, scene)
+  const has = (key: string) => specs.some((spec) => spec.key === key)
+  const repeat = live ? `P.s[${k}].repeat` : String(shape.repeat)
+  const color = live ? `P.s[${k}].color` : JSON.stringify(shape.color)
+
+  const out = [`  // ${shape.name.replace(/[\r\n]+/g, ' ')}`, `  const n${k} = ${repeat}`, `  for (let i = 0; i < n${k}; i++) {`, `    const n = n${k}`]
+  for (const { key } of specs) out.push(`    const ${key} = ${driverExpression(k, key, shape.props[key], live)}`)
+
+  // WebGL ignores globalAlpha, so opacity rides on the color.
+  out.push('    push()', `    translate(x - width / 2, y - height / 2${has('z') ? ', z' : ''})`)
+  if (has('rotation')) out.push('    rotateZ(radians(rotation))')
+  for (const axis of ['X', 'Y', 'Z']) if (has(`rot${axis}`)) out.push(`    rotate${axis}(radians(rot${axis}))`)
+  out.push(`    const col = color(${color})`, '    col.setAlpha(constrain(opacity, 0, 1) * 255)')
+  if (shape.type === 'line' || shape.outline) out.push('    noFill()', '    stroke(col)', '    strokeWeight(weight)', '    strokeCap(ROUND)')
+  else out.push('    noStroke()', '    fill(col)')
+
+  /** The shape's draw call, optionally `grow` pixels bigger (for the selection wireframe). */
+  const geometry = (grow: number) => {
+    const plus = (name: string, by = grow) => (by === 0 ? name : `${name} + ${by}`)
+    if (shape.type === 'circle') return `circle(0, 0, ${plus('size')})`
+    if (shape.type === 'rect') return `rectMode(CENTER); rect(0, 0, ${plus('w')}, ${plus('h')})`
+    if (shape.type === 'box') return `box(${plus('w')}, ${plus('h')}, ${plus('d')})`
+    if (shape.type === 'sphere') return `sphere(${plus('size / 2', grow / 2)})`
+    return 'line(-length / 2, 0, length / 2, 0)'
+  }
+  out.push(`    ${geometry(0)}`)
+  // The selected shape gets a magenta wireframe just outside it, only while editing.
+  if (live) {
+    out.push(`    if (P.guides && P.sel === ${k}) {`, '      noFill()', '      stroke(255, 60, 200)', '      strokeWeight(1.5)', `      ${geometry(6)}`, '    }')
+  }
+  out.push('    pop()', '  }')
+  return out
+}
+
 function shapeBlock(scene: Scene, shape: Shape, k: number, live: boolean): string[] {
+  if (scene.mode === '3d') return shapeBlock3D(scene, shape, k, live)
   const specs = propSpecs(shape, scene)
   const has = (key: string) => specs.some((spec) => spec.key === key)
   const repeat = live ? `P.s[${k}].repeat` : String(shape.repeat)
