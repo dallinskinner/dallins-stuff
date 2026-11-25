@@ -85,42 +85,20 @@
   margin: 0;
 }
 
-.shapeList li {
-  display: flex;
-  gap: 4px;
-}
-
-.shapeName {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .inspector {
   display: flex;
   flex-direction: column;
 }
 
+/* The layers read like a layers panel: one bordered list, rows touching, each a thumbnail, a name and a menu. */
 .shapeList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.chip {
-  display: inline-block;
-  width: 0.8em;
-  height: 0.8em;
-  margin-right: 0.5em;
   border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--color);
+  border-radius: var(--radius);
 }
 
 .dial {
@@ -293,4 +271,81 @@
 .dial[data-bare] {
   padding: 0 0 var(--ui-pad-x);
   border: 0;
+}
+
+.layerRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 3px 3px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.layerRow:last-child {
+  border-bottom: 0;
+}
+
+/* No overflow clipping on the list (the row menus open past it), so the end rows round their own corners. */
+.layerRow:first-child {
+  border-top-left-radius: calc(var(--radius) - 1px);
+  border-top-right-radius: calc(var(--radius) - 1px);
+}
+
+.layerRow:last-child {
+  border-bottom-left-radius: calc(var(--radius) - 1px);
+  border-bottom-right-radius: calc(var(--radius) - 1px);
+}
+
+.layerRow[data-selected='true'] {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+/* The name area is the whole row's hit target, not a bordered button; the extra classes out-rank the standard button rules. */
+.shapeList .layerRow > button.layerMain {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  text-align: left;
+}
+
+.layerThumb {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--content-background);
+}
+
+.layerName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layerCount {
+  opacity: 0.7;
+}
+
+/* The row's menu button is a quiet ghost until hovered. */
+.shapeList .layerRow [data-size='icon'][aria-haspopup] {
+  width: 28px;
+  height: 28px;
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.shapeList .layerRow [data-size='icon'][aria-haspopup]:hover {
+  background-color: color-mix(in srgb, var(--foreground) 12%, transparent);
 }

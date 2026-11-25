@@ -24,6 +24,17 @@ function summarize(driver: Driver): { value: string; mode: string } {
   return { value: driver.source, mode: 'Expr' }
 }
 
+/** The tool icon for each kind of layer. */
+const ICONS: Record<ShapeType, string> = {
+  circle: circleIcon,
+  rect: squareIcon,
+  line: lineIcon,
+  box: boxIcon,
+  sphere: sphereIcon,
+  camera: cameraIcon,
+  light: lightIcon,
+}
+
 const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
   { type: 'circle', icon: circleIcon },
   { type: 'rect', icon: squareIcon },
@@ -175,11 +186,14 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
 
       <ol className={styles.shapeList} aria-label="Layers, top first">
         {[...scene.shapes].reverse().map((shape) => (
-          <li key={shape.id}>
-            <button type="button" className={styles.shapeName} aria-pressed={shape.id === selectedId} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
-              {shape.type !== 'camera' && <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />}
-              {shape.name}
-              {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
+          <li key={shape.id} className={styles.layerRow} data-selected={shape.id === selectedId}>
+            <button type="button" className={styles.layerMain} aria-current={shape.id === selectedId ? 'true' : undefined} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
+              {/* A thumbnail: the layer's tool icon, in the layer's own color. */}
+              <span className={styles.layerThumb} style={{ color: shape.type === 'camera' ? 'var(--foreground)' : shape.color }}>
+                <span className="ui-icon" style={{ '--icon': `url(${ICONS[shape.type]})` } as React.CSSProperties} />
+              </span>
+              <span className={styles.layerName}>{shape.name}</span>
+              {shape.repeat > 1 && <small className={styles.layerCount}>×{shape.repeat}</small>}
             </button>
             <Dropdown label={`${shape.name} actions`} icon={kebabIcon} align="right">
               <button type="button" onClick={() => move(shape.id, 1)}>
