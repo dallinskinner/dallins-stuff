@@ -401,9 +401,13 @@
     opacity: 0.8;
   }
 
-  /* An editable number box standing in for the readout, for apps that need typed values. */
+  /* An editable number box standing in for the readout, for apps that need typed values. The label
+     aligns to the box's bottom edge, not the top. */
+  .ui-field-header:has(input) {
+    align-items: flex-end;
+  }
+
   .ui-field-header input[type='number'] {
-    align-self: center;
     height: calc(var(--ui-height) - 8px);
     width: 7ch;
     padding: 0 calc(var(--ui-pad-x) / 2);
