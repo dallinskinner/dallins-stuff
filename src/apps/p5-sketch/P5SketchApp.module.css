@@ -277,6 +277,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  /* index.css gives list items a bottom margin for body text; here the hairlines separate the rows. */
+  margin: 0;
   padding: 3px 3px 3px 4px;
   border-bottom: 1px solid var(--border);
 }
