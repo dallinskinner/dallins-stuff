@@ -13,11 +13,12 @@ import cameraIcon from '../../assets/icons/camera.png'
 import lightIcon from '../../assets/icons/light.png'
 import styles from './P5SketchApp.module.css'
 
-/** A setting's closed-row summary: its value now (a wave shows its center, an expression its source) and which kind it is. */
+/** A setting's closed-row summary: its value now (a wave shows its center, a linear sweep its from and to, an expression its source) and which kind it is. */
 function summarize(driver: Driver): { value: string; mode: string } {
   const round = (n: number) => String(Math.round(n * 1000) / 1000)
   if (driver.kind === 'const') return { value: round(driver.value), mode: 'Fixed' }
   if (driver.kind === 'wave') return { value: round(driver.center), mode: 'Wave' }
+  if (driver.kind === 'linear') return { value: `${round(driver.from)} → ${round(driver.to)}`, mode: 'Linear' }
   return { value: driver.source, mode: 'Expr' }
 }
 

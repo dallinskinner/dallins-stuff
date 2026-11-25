@@ -71,7 +71,7 @@ export function generateSketch(scene: Scene, live: boolean): Generated {
   const lines: string[] = []
   // Live sketches always carry the easing helpers so switching one on doesn't change the structure; flat code only when used.
   const usesEasing = scene.shapes.some((shape) =>
-    Object.values(shape.props).some((d) => (d.kind === 'wave' && d.ease !== 'none') || (d.kind === 'expr' && d.source.includes('E.'))),
+    Object.values(shape.props).some((d) => ((d.kind === 'wave' || d.kind === 'linear') && d.ease !== 'none') || (d.kind === 'expr' && d.source.includes('E.'))),
   )
   lines.push(HELPERS, '')
   if (live || usesEasing) lines.push(EASING_HELPERS, '')
@@ -109,6 +109,14 @@ function driverExpression(k: number, key: string, driver: Driver, live: boolean)
   if (driver.kind === 'const') {
     const step = live || driver.step !== 0 ? ` + i * ${ref('step', driver.step)}` : ''
     return `${ref('value', driver.value)}${step}`
+  }
+  if (driver.kind === 'linear') {
+    const phaseStep = live || driver.phaseStep !== 0 ? ` + i * ${ref('phaseStep', driver.phaseStep)}` : ''
+    const step = live || driver.step !== 0 ? ` + i * ${ref('step', driver.step)}` : ''
+    // Where this sweep is, 0 to 1 and then back to 0; the double modulo also keeps a negative phase in range.
+    const raw = `(((${ref('cycles', driver.cycles)} * p + ${ref('phase', driver.phase)}${phaseStep}) % 1 + 1) % 1)`
+    const sweep = driver.ease === 'none' ? raw : `((E.${driver.ease}(2 * ${raw} - 1) + 1) / 2)`
+    return `${ref('from', driver.from)} + (${ref('to', driver.to)} - ${ref('from', driver.from)}) * ${sweep}${step}`
   }
   const phaseStep = live || driver.phaseStep !== 0 ? ` + i * ${ref('phaseStep', driver.phaseStep)}` : ''
   const step = live || driver.step !== 0 ? ` + i * ${ref('step', driver.step)}` : ''

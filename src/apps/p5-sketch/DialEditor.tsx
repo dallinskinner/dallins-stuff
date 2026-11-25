@@ -7,6 +7,7 @@ import styles from './P5SketchApp.module.css'
 const KINDS: { id: DriverKind; label: string }[] = [
   { id: 'const', label: 'Fixed' },
   { id: 'wave', label: 'Wave' },
+  { id: 'linear', label: 'Linear' },
   { id: 'expr', label: 'Expr' },
 ]
 
@@ -72,6 +73,31 @@ export function DialEditor({ spec, driver, repeat, onChange, bare = false }: Dia
           <Slider label="Center" value={driver.center} min={spec.min} max={spec.max} step={spec.step} onChange={(center) => onChange({ ...driver, center })} />
           <Slider label="Amount" value={driver.amp} min={0} max={range} step={spec.step} onChange={(amp) => onChange({ ...driver, amp })} />
           <Slider label="Cycles" value={driver.cycles} min={0} max={16} step={1} onChange={(cycles) => onChange({ ...driver, cycles })} />
+          <Slider label="Phase" value={driver.phase} min={0} max={1} step={0.01} onChange={(phase) => onChange({ ...driver, phase })} />
+          {repeat > 1 && (
+            <>
+              <Slider label="Phase/copy" value={driver.phaseStep} min={-1} max={1} step={0.01} onChange={(phaseStep) => onChange({ ...driver, phaseStep })} />
+              <Slider label="Offset/copy" value={driver.step} min={-perCopyRange} max={perCopyRange} step={spec.step} onChange={(step) => onChange({ ...driver, step })} />
+            </>
+          )}
+        </>
+      )}
+
+      {driver.kind === 'linear' && (
+        <>
+          <Slider label="From" value={driver.from} min={spec.min} max={spec.max} step={spec.step} onChange={(from) => onChange({ ...driver, from })} />
+          <Slider label="To" value={driver.to} min={spec.min} max={spec.max} step={spec.step} onChange={(to) => onChange({ ...driver, to })} />
+          <label className="ui-field">
+            <span className="ui-field-header">Easing</span>
+            <select value={driver.ease} onChange={(e) => onChange({ ...driver, ease: e.target.value as Ease })}>
+              {EASES.map(({ id, label }) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Slider label="Sweeps per loop" value={driver.cycles} min={0} max={16} step={1} onChange={(cycles) => onChange({ ...driver, cycles })} />
           <Slider label="Phase" value={driver.phase} min={0} max={1} step={0.01} onChange={(phase) => onChange({ ...driver, phase })} />
           {repeat > 1 && (
             <>

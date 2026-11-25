@@ -14,7 +14,7 @@ export const EASES: { id: Ease; label: string }[] = [
   { id: 'elastic', label: 'Elastic' },
 ]
 
-export type DriverKind = 'const' | 'wave' | 'expr'
+export type DriverKind = 'const' | 'wave' | 'linear' | 'expr'
 
 /** `step` on every driver is added once per copy of a repeated shape (value + i * step). */
 export interface ConstDriver {
@@ -39,13 +39,28 @@ export interface WaveDriver {
   step: number
 }
 
+/** A straight sweep from `from` to `to` that jumps back and starts over: from + (to - from) * (cycles * p + phase), repeating. */
+export interface LinearDriver {
+  kind: 'linear'
+  /** Reshapes each sweep (ease in, bounce...); none is a constant speed. */
+  ease: Ease
+  from: number
+  to: number
+  /** Whole sweeps per loop keep the animation seamless. */
+  cycles: number
+  /** In sweeps, so 0.25 starts a quarter of the way along. */
+  phase: number
+  phaseStep: number
+  step: number
+}
+
 /** A p5 expression that can use t (seconds), p (0-1 through the loop), i and n (copy index and count), and p5's own functions. */
 export interface ExprDriver {
   kind: 'expr'
   source: string
 }
 
-export type Driver = ConstDriver | WaveDriver | ExprDriver
+export type Driver = ConstDriver | WaveDriver | LinearDriver | ExprDriver
 
 export type ShapeType = 'circle' | 'rect' | 'line' | 'box' | 'sphere' | 'camera' | 'light'
 export const SHAPE_LABELS: Record<ShapeType, string> = {
@@ -230,14 +245,19 @@ export function duplicateShape(shape: Shape): Shape {
     const driver = copy.props[key]
     if (driver?.kind === 'const') driver.value += 20
     else if (driver?.kind === 'wave') driver.center += 20
+    else if (driver?.kind === 'linear') {
+      driver.from += 20
+      driver.to += 20
+    }
   }
   return copy
 }
 
-/** The driver's value now, or the middle of the slider range when it's an expression. */
+/** The driver's value now (where a sweep starts), or the middle of the slider range when it's an expression. */
 export function currentValue(driver: Driver, spec: PropSpec): number {
   if (driver.kind === 'const') return driver.value
   if (driver.kind === 'wave') return driver.center
+  if (driver.kind === 'linear') return driver.from
   return (spec.min + spec.max) / 2
 }
 
@@ -251,6 +271,17 @@ export function convertDriver(driver: Driver, kind: DriverKind, spec: PropSpec):
   if (kind === 'wave') {
     const step = driver.kind === 'expr' ? 0 : driver.step
     return { kind: 'wave', wave: 'sin', ease: 'none', center: value, amp: round((spec.max - spec.min) / 8), cycles: 1, phase: 0, phaseStep: 0, step }
+  }
+  if (kind === 'linear') {
+    const step = driver.kind === 'expr' ? 0 : driver.step
+    // Starts where the dial is now and sweeps to the far end of its range (or back to the start, if it's already there).
+    const to = value === spec.max ? spec.min : spec.max
+    return { kind: 'linear', ease: 'none', from: value, to, cycles: 1, phase: 0, phaseStep: 0, step }
+  }
+  if (driver.kind === 'linear') {
+    const { ease, from, to, cycles, phase } = driver
+    const raw = `(((${cycles} * p + ${phase}) % 1 + 1) % 1)`
+    return { kind: 'expr', source: `${from} + (${to} - ${from}) * ${ease === 'none' ? raw : `((E.${ease}(2 * ${raw} - 1) + 1) / 2)`}` }
   }
   if (driver.kind === 'wave') {
     const { wave, ease, center, amp, cycles, phase } = driver
@@ -275,6 +306,18 @@ function sanitizeDriver(raw: unknown, fallback: Driver): Driver {
   if (!isRecord(raw)) return fallback
   if (raw.kind === 'const') return { kind: 'const', value: finite(raw.value, 0), step: finite(raw.step, 0) }
   if (raw.kind === 'expr') return { kind: 'expr', source: typeof raw.source === 'string' ? raw.source : '0' }
+  if (raw.kind === 'linear') {
+    return {
+      kind: 'linear',
+      ease: EASES.some((e) => e.id === raw.ease) ? (raw.ease as Ease) : 'none',
+      from: finite(raw.from, 0),
+      to: finite(raw.to, 1),
+      cycles: finite(raw.cycles, 1),
+      phase: finite(raw.phase, 0),
+      phaseStep: finite(raw.phaseStep, 0),
+      step: finite(raw.step, 0),
+    }
+  }
   if (raw.kind === 'wave') {
     return {
       kind: 'wave',
