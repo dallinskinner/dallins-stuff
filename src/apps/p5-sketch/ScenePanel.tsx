@@ -200,7 +200,12 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
         </div>
       </details>
 
-      <ol className={styles.shapeList} aria-label="Layers, top first">
+      <ol
+        className={styles.shapeList}
+        aria-label="Layers, top first"
+        // A layer row is 37px (with its hairline) and the border is 2px; an empty list keeps room for its note.
+        style={{ '--list-min': `${Math.min(Math.max(scene.shapes.length, 2), 3) * 37 + 2}px` } as React.CSSProperties}
+      >
         {scene.shapes.length === 0 && <li className={styles.layerEmpty}>No objects yet</li>}
         {[...scene.shapes].reverse().map((shape) => (
           <li key={shape.id} className={styles.layerRow} data-selected={shape.id === selectedId}>

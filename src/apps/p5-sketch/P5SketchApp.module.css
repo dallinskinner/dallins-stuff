@@ -134,12 +134,13 @@
 }
 
 /* The layers read like a layers panel: one bordered list, rows touching, each a thumbnail, a name and a menu. */
-/* The layers read like a layers panel: one bordered list, rows touching, each a thumbnail, a name and a menu. It scrolls on its own, down to a few rows' height. */
+/* The layers read like a layers panel: one bordered list, rows touching, each a thumbnail, a name and a menu. It is as tall as its rows, and scrolls on its own once the space runs out. */
 .shapeList {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   flex-direction: column;
-  min-height: 112px;
+  /* Set from the number of layers (up to three rows): the list only shrinks to a few rows, never below the rows it has. */
+  min-height: var(--list-min, 0px);
   margin: 0;
   padding: 0;
   overflow-y: auto;
