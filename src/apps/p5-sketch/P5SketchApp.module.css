@@ -396,3 +396,14 @@
 .shapeList .layerRow [data-size='icon'][aria-haspopup]:hover {
   background-color: color-mix(in srgb, var(--foreground) 12%, transparent);
 }
+
+/* An empty list keeps some height, with a quiet note, instead of collapsing to a bare border. */
+.layerEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  margin: 0;
+  /* Fainter than the muted label color: it's a hint, not content. */
+  color: color-mix(in srgb, var(--foreground) 38%, transparent);
+  font-size: var(--ui-label-size);
+}

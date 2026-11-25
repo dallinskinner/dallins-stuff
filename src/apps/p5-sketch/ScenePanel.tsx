@@ -146,7 +146,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
   return (
     <div className={styles.scenePanel}>
       <div className={styles.sceneTop}>
-      <details>
+      <details open>
         <summary>Canvas</summary>
         <div className="ui-details-body">
           <label className="ui-field">
@@ -186,6 +186,7 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
       </details>
 
       <ol className={styles.shapeList} aria-label="Layers, top first">
+        {scene.shapes.length === 0 && <li className={styles.layerEmpty}>No objects yet</li>}
         {[...scene.shapes].reverse().map((shape) => (
           <li key={shape.id} className={styles.layerRow} data-selected={shape.id === selectedId}>
             <button type="button" className={styles.layerMain} aria-current={shape.id === selectedId ? 'true' : undefined} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
