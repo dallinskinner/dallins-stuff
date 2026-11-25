@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { DialEditor } from './DialEditor'
 import type { Driver, Scene, Shape, ShapeType } from './scene'
 import type { LightKind } from './scene'
@@ -11,6 +12,14 @@ import sphereIcon from '../../assets/icons/sphere.png'
 import cameraIcon from '../../assets/icons/camera.png'
 import lightIcon from '../../assets/icons/light.png'
 import styles from './P5SketchApp.module.css'
+
+/** A setting's closed-row summary: its value now (a wave shows its center, an expression its source) and which kind it is. */
+function summarize(driver: Driver): { value: string; mode: string } {
+  const round = (n: number) => String(Math.round(n * 1000) / 1000)
+  if (driver.kind === 'const') return { value: round(driver.value), mode: 'Fixed' }
+  if (driver.kind === 'wave') return { value: round(driver.center), mode: 'Wave' }
+  return { value: driver.source, mode: 'Expr' }
+}
 
 const SHAPE_TOOLS: { type: ShapeType; icon: string }[] = [
   { type: 'circle', icon: circleIcon },
@@ -65,7 +74,8 @@ interface ScenePanelProps {
 }
 
 export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelProps) {
-  const selected = scene.shapes.find((shape) => shape.id === selectedId) ?? null
+  /** Which setting's accordion row is open, as `layerId:key`. A different layer's id never matches, so switching layers closes it. */
+  const [openSetting, setOpenSetting] = useState<string | null>(null)
 
   const updateShape = (id: number, change: (shape: Shape) => Shape) =>
     onScene((prev) => ({ ...prev, shapes: prev.shapes.map((shape) => (shape.id === id ? change(shape) : shape)) }))
@@ -159,65 +169,98 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
         </div>
       </details>
 
-      <ol className={styles.shapeList} aria-label="Shapes, bottom to top">
-        {[...scene.shapes].reverse().map((shape) => (
-          <li key={shape.id}>
-            <button type="button" className={styles.shapeName} aria-pressed={shape.id === selectedId} onClick={() => onSelect(shape.id === selectedId ? null : shape.id)}>
-              {shape.type !== 'camera' && <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />}
-              {shape.name}
-              {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
-            </button>
-            <button type="button" onClick={() => move(shape.id, 1)} aria-label={`Move ${shape.name} up`} title="Move up">
-              ↑
-            </button>
-            <button type="button" onClick={() => move(shape.id, -1)} aria-label={`Move ${shape.name} down`} title="Move down">
-              ↓
-            </button>
-            <button type="button" onClick={() => duplicate(shape)} disabled={shape.type === 'camera'} aria-label={`Duplicate ${shape.name}`} title={shape.type === 'camera' ? 'A scene has one camera' : 'Duplicate'}>
-              ⧉
-            </button>
-            <button type="button" onClick={() => remove(shape.id)} aria-label={`Delete ${shape.name}`} title="Delete">
-              ×
-            </button>
-          </li>
-        ))}
+      <ol className={styles.shapeList} aria-label="Layers, top first">
+        {[...scene.shapes].reverse().map((shape) => {
+          const isOpen = shape.id === selectedId
+          return (
+            <li key={shape.id}>
+              {/* Opening a layer selects it (and shows its guide in the preview); the click is handled here, not by the browser's toggle. */}
+              <details open={isOpen}>
+                <summary
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onSelect(isOpen ? null : shape.id)
+                  }}
+                >
+                  {shape.type !== 'camera' && <span className={styles.chip} style={{ '--color': shape.color } as React.CSSProperties} />}
+                  <span className={styles.layerName}>{shape.name}</span>
+                  {shape.repeat > 1 && <small> ×{shape.repeat}</small>}
+                </summary>
+                {isOpen && (
+                  <div className="ui-details-body">
+                    <div className={styles.layerActions}>
+                      <button type="button" data-size="icon" onClick={() => move(shape.id, 1)} aria-label={`Move ${shape.name} up`} title="Move up">
+                        ↑
+                      </button>
+                      <button type="button" data-size="icon" onClick={() => move(shape.id, -1)} aria-label={`Move ${shape.name} down`} title="Move down">
+                        ↓
+                      </button>
+                      <button type="button" data-size="icon" onClick={() => duplicate(shape)} disabled={shape.type === 'camera'} aria-label={`Duplicate ${shape.name}`} title={shape.type === 'camera' ? 'A scene has one camera' : 'Duplicate'}>
+                        ⧉
+                      </button>
+                      <button type="button" data-size="icon" onClick={() => remove(shape.id)} aria-label={`Delete ${shape.name}`} title="Delete">
+                        ×
+                      </button>
+                    </div>
+                    <input className={styles.nameInput} value={shape.name} onChange={(e) => updateShape(shape.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Layer name" />
+                    <div className="ui-fields">
+                      {shape.type === 'light' && (
+                        <label className="ui-field">
+                          <span className="ui-field-header">Type</span>
+                          <select value={shape.kind} onChange={(e) => changeLightKind(shape, e.target.value as LightKind)}>
+                            {LIGHT_KINDS.map(({ id, label }) => (
+                              <option key={id} value={id}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      {shape.type !== 'camera' && (
+                        <label className="ui-field">
+                          <span className="ui-field-header">Color</span>
+                          <input type="color" value={shape.color} onChange={(e) => updateShape(shape.id, (s) => ({ ...s, color: e.target.value }))} />
+                        </label>
+                      )}
+                      {shape.type !== 'line' && !isSceneObject(shape.type) && (
+                        <label className="ui-check">
+                          <input type="checkbox" checked={shape.outline} onChange={(e) => updateShape(shape.id, (s) => ({ ...s, outline: e.target.checked }))} />
+                          {is3D(shape.type) ? 'Wireframe' : 'Outline only'}
+                        </label>
+                      )}
+                      {!isSceneObject(shape.type) && (
+                        <Slider label="Copies" value={shape.repeat} min={1} max={32} step={1} onChange={(repeat) => updateShape(shape.id, (s) => ({ ...s, repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(repeat))) }))} />
+                      )}
+                    </div>
+                    <div className={styles.settings}>
+                      {propSpecs(shape, scene).map((spec) => {
+                        const id = `${shape.id}:${spec.key}`
+                        const open = openSetting === id
+                        const { value, mode } = summarize(shape.props[spec.key])
+                        return (
+                          <details key={spec.key} className={styles.setting} open={open}>
+                            <summary
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setOpenSetting(open ? null : id)
+                              }}
+                            >
+                              <span className={styles.settingName}>{spec.label}</span>
+                              <span className={styles.settingValue}>{value}</span>
+                              <span className={styles.settingMode}>{mode}</span>
+                            </summary>
+                            {open && <DialEditor bare spec={spec} driver={shape.props[spec.key]} repeat={shape.repeat} onChange={(driver) => setProp(shape, spec.key, driver)} />}
+                          </details>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </details>
+            </li>
+          )
+        })}
       </ol>
-
-      {selected && (
-        <div className={`ui-fields ${styles.inspector}`}>
-          <input className={styles.nameInput} value={selected.name} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, name: e.target.value }))} aria-label="Shape name" />
-          {selected.type === 'light' && (
-            <label className="ui-field">
-              <span className="ui-field-header">Type</span>
-              <select value={selected.kind} onChange={(e) => changeLightKind(selected, e.target.value as LightKind)}>
-                {LIGHT_KINDS.map(({ id, label }) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {selected.type !== 'camera' && (
-            <label className="ui-field">
-              <span className="ui-field-header">Color</span>
-              <input type="color" value={selected.color} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, color: e.target.value }))} />
-            </label>
-          )}
-          {selected.type !== 'line' && !isSceneObject(selected.type) && (
-            <label className="ui-check">
-              <input type="checkbox" checked={selected.outline} onChange={(e) => updateShape(selected.id, (s) => ({ ...s, outline: e.target.checked }))} />
-              {is3D(selected.type) ? 'Wireframe' : 'Outline only'}
-            </label>
-          )}
-          {!isSceneObject(selected.type) && (
-            <Slider label="Copies" value={selected.repeat} min={1} max={32} step={1} onChange={(repeat) => updateShape(selected.id, (s) => ({ ...s, repeat: Math.min(MAX_REPEAT, Math.max(1, Math.round(repeat))) }))} />
-          )}
-          {propSpecs(selected, scene).map((spec) => (
-            <DialEditor key={spec.key} spec={spec} driver={selected.props[spec.key]} repeat={selected.repeat} onChange={(driver) => setProp(selected, spec.key, driver)} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }

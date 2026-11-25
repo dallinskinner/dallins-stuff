@@ -16,17 +16,19 @@ interface DialEditorProps {
   /** Copies of the shape; per-copy dials only show when there's more than one. */
   repeat: number
   onChange: (driver: Driver) => void
+  /** Drop the title and box, for use inside an accordion row that already names the setting. */
+  bare?: boolean
 }
 
 /** One property's dial: fixed value, wave (center/amp/cycles/phase), or a typed expression. */
-export function DialEditor({ spec, driver, repeat, onChange }: DialEditorProps) {
+export function DialEditor({ spec, driver, repeat, onChange, bare = false }: DialEditorProps) {
   const range = spec.max - spec.min
   const perCopyRange = range / 2
 
   return (
-    <div className={`ui-fields ${styles.dial}`}>
+    <div className={`ui-fields ${styles.dial}`} data-bare={bare ? '' : undefined}>
       <div className={styles.dialHeader}>
-        <strong>{spec.label}</strong>
+        {!bare && <strong>{spec.label}</strong>}
         <div className={styles.kinds} role="group" aria-label={`${spec.label} mode`}>
           {KINDS.map(({ id, label }) => (
             <button key={id} type="button" data-size="sm" aria-pressed={driver.kind === id} onClick={() => onChange(convertDriver(driver, id, spec))}>
