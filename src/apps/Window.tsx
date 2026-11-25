@@ -43,7 +43,8 @@ export function Window({ title, icon, maxWidth, defaultSize, zIndex, isFocused, 
   const [pos, setPos] = useState({ x: initialOffset, y: initialOffset })
   const [size, setSize] = useState<{ width: number; height: number } | null>(() =>
     defaultSize
-      ? { width: Math.min(defaultSize.width, window.innerWidth), height: Math.min(defaultSize.height, window.innerHeight) }
+      ? // Leaves a margin on smaller screens so a big default never fills the whole viewport.
+        { width: Math.min(defaultSize.width, window.innerWidth * 0.92), height: Math.min(defaultSize.height, window.innerHeight * 0.9) }
       : null,
   )
   const [isDragging, setIsDragging] = useState(false)
