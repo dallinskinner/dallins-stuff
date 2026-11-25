@@ -102,6 +102,8 @@
    window's padding), and beside a side panel; sides at the window's left/right edge already have its padding. */
 .viewport {
   padding-block: var(--padding);
+  /* A few px even at the window's edge, so focus rings on controls inside aren't clipped by the scroll area. */
+  padding-inline: 4px;
 }
 
 .viewport[data-left] {
