@@ -85,6 +85,25 @@
   margin: 0;
 }
 
+.shapeList li {
+  display: flex;
+  gap: 4px;
+}
+
+.shapeName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+}
+
 .shapeList {
   display: flex;
   flex-direction: column;
@@ -223,27 +242,6 @@
   position: absolute;
   right: 20px;
   bottom: 8px;
-}
-
-/* A layer's summary is the layer's own name, so it reads as content rather than the standard muted small caps. */
-.shapeList > li > details > summary {
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--foreground);
-  font-size: var(--ui-font-size);
-}
-
-.layerName {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.layerActions {
-  display: flex;
-  gap: 4px;
 }
 
 /* The settings are an accordion: hairline-separated rows, each showing name, value and kind until opened. */
