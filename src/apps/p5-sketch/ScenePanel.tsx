@@ -134,7 +134,6 @@ export function ScenePanel({ scene, selectedId, onSelect, onScene }: ScenePanelP
             </button>
           </li>
         ))}
-        {scene.shapes.length === 0 && <li className={styles.dialHint}>No shapes yet. Add one with the buttons above.</li>}
       </ol>
 
       {selected && (
