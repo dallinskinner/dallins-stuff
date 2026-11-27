@@ -1,4 +1,5 @@
 import { rgbToOklab } from '../image-tools/colorConversion'
+import { EFFECTS_GLSL } from './effectsShader'
 
 export type Algorithm = 'bayer2' | 'bayer4' | 'bayer8' | 'bayer16' | 'blue' | 'noise' | 'halftone' | 'lines' | 'threshold'
 
@@ -31,7 +32,17 @@ const MATCHING_INDEX: Record<Matching, number> = { rgb: 0, perceptual: 1, value:
 export const MAX_PALETTE_COLORS = 16
 
 /** `dither` quantizes to the palette with a threshold pattern; `ascii` draws a glyph per cell, chosen by brightness. */
-export type RenderMode = 'dither' | 'ascii'
+export type RenderMode = 'dither' | 'ascii' | 'cel' | 'cmyk' | 'crt'
+
+export const MODES: { id: RenderMode; label: string }[] = [
+  { id: 'dither', label: 'Dither' },
+  { id: 'ascii', label: 'ASCII' },
+  { id: 'cel', label: 'Cel shading' },
+  { id: 'cmyk', label: 'CMYK halftone' },
+  { id: 'crt', label: 'CRT' },
+]
+
+const MODE_INDEX: Record<RenderMode, number> = { dither: 0, ascii: 1, cel: 2, cmyk: 3, crt: 4 }
 
 /** Characters from darkest source to lightest, so it reads as light ink on the palette's first (background) color. */
 export const DEFAULT_RAMP = ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'
@@ -60,6 +71,46 @@ export interface DitherParams {
   strength: number
   /** `#rrggbb` colors, 1 to MAX_PALETTE_COLORS. */
   palette: string[]
+  /** Cel mode: number of flat lightness levels. */
+  celBands: number
+  /** Cel mode: how sharp a change must be to get an outline; lower draws more lines. */
+  celThreshold: number
+  /** Cel mode: outline width in output pixels; 0 draws none. */
+  celThickness: number
+  /** Cel mode: blur radius applied first, in output pixels. */
+  celSmooth: number
+  /** Cel mode: snaps the bands to the palette, and inks with its darkest color. */
+  celPalette: boolean
+  /** CMYK mode: spacing of the dot grid, in output pixels. */
+  dotSize: number
+  /** CMYK mode: degrees added to every screen's angle. */
+  dotAngle: number
+  /** CMYK mode: how far the color plates are knocked out of alignment, in output pixels. */
+  misregister: number
+  /** CRT mode: height of one scanline, in output pixels. */
+  lineSize: number
+  /** CRT mode: the next four are 0-1 strengths. */
+  scanlines: number
+  mask: number
+  curvature: number
+  vignette: number
+  /** CRT mode: red/blue separation at the sides, in output pixels. */
+  fringe: number
+}
+
+/** `params` with every length multiplied by `scale`, so a scaled-up output looks the same, only bigger. */
+export function scaleParams(params: DitherParams, scale: number): DitherParams {
+  return {
+    ...params,
+    scale: params.scale * scale,
+    cellSize: params.cellSize * scale,
+    celThickness: params.celThickness * scale,
+    celSmooth: params.celSmooth * scale,
+    dotSize: params.dotSize * scale,
+    misregister: params.misregister * scale,
+    lineSize: params.lineSize * scale,
+    fringe: params.fringe * scale,
+  }
 }
 
 const ALGORITHM_INDEX: Record<Algorithm, number> = {
@@ -307,8 +358,15 @@ vec3 nearest(vec3 color) {
   }
   return best;
 }
-
+${EFFECTS_GLSL}
 void main() {
+  if (u_mode >= 2) {
+    vec2 pos = gl_FragCoord.xy;
+    vec3 result = u_mode == 2 ? cel(pos) : u_mode == 3 ? cmyk(pos) : crt(pos);
+    outColor = vec4(result, 1.0);
+    return;
+  }
+
   if (u_mode == 1) {
     // ASCII: average the source over each glyph cell, pick a glyph by brightness, and draw it as ink on the background.
     vec2 cellCoord = gl_FragCoord.xy / u_cell;
@@ -405,6 +463,22 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     glyph: uniform('u_glyph'),
     glyphs: uniform('u_glyphs'),
     invert: uniform('u_invert'),
+    texels: uniform('u_texels'),
+    celBands: uniform('u_celBands'),
+    celThreshold: uniform('u_celThreshold'),
+    celThickness: uniform('u_celThickness'),
+    celSmooth: uniform('u_celSmooth'),
+    celPalette: uniform('u_celPalette'),
+    celInk: uniform('u_celInk'),
+    dotSize: uniform('u_dotSize'),
+    dotAngle: uniform('u_dotAngle'),
+    misregister: uniform('u_misregister'),
+    lineSize: uniform('u_lineSize'),
+    scanlines: uniform('u_scanlines'),
+    mask: uniform('u_mask'),
+    curvature: uniform('u_curvature'),
+    vignette: uniform('u_vignette'),
+    fringe: uniform('u_fringe'),
   }
   gl.uniform1i(loc.blue, 1)
   gl.uniform1i(loc.atlas, 2)
@@ -460,7 +534,7 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
     draw(source, sourceScale, params) {
       const ascii = params.mode === 'ascii'
       if (ascii) ensureAtlas(params.ramp, params.cellSize)
-      else if (params.algorithm === 'blue') ensureBlueNoise()
+      else if (params.mode === 'dither' && params.algorithm === 'blue') ensureBlueNoise()
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source)
       gl.generateMipmap(gl.TEXTURE_2D)
 
@@ -480,7 +554,7 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
       gl.uniform2f(loc.size, canvas.width, canvas.height)
       gl.uniform1f(loc.scale, params.scale)
       gl.uniform1f(loc.lod, Math.max(0, Math.log2((ascii ? params.cellSize * params.letterSpacing : params.scale) / sourceScale)))
-      gl.uniform1i(loc.mode, ascii ? 1 : 0)
+      gl.uniform1i(loc.mode, MODE_INDEX[params.mode])
       gl.uniform2f(loc.cell, params.cellSize * params.letterSpacing, params.cellSize * 2 * params.lineHeight)
       gl.uniform2f(loc.glyph, params.cellSize, params.cellSize * 2)
       gl.uniform1i(loc.glyphs, glyphCount)
@@ -493,6 +567,28 @@ export function createDitherRenderer(canvas: HTMLCanvasElement): DitherRenderer 
       gl.uniform1i(loc.match, MATCHING_INDEX[params.matching])
       gl.uniform3fv(loc.palette, flat)
       gl.uniform3fv(loc.keys, keys)
+
+      const lightness = (hex: string) => {
+        const [red, green, blue] = hexToRgb(hex)
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+      }
+      const ink = params.celPalette ? colors.reduce((darkest, hex) => (lightness(hex) < lightness(darkest) ? hex : darkest)) : '#000000'
+      gl.uniform1f(loc.texels, 1 / sourceScale)
+      gl.uniform1f(loc.celBands, params.celBands)
+      gl.uniform1f(loc.celThreshold, params.celThreshold)
+      gl.uniform1f(loc.celThickness, params.celThickness)
+      gl.uniform1f(loc.celSmooth, params.celSmooth)
+      gl.uniform1i(loc.celPalette, params.celPalette ? 1 : 0)
+      gl.uniform3fv(loc.celInk, hexToRgb(ink))
+      gl.uniform1f(loc.dotSize, params.dotSize)
+      gl.uniform1f(loc.dotAngle, params.dotAngle)
+      gl.uniform1f(loc.misregister, params.misregister)
+      gl.uniform1f(loc.lineSize, params.lineSize)
+      gl.uniform1f(loc.scanlines, params.scanlines)
+      gl.uniform1f(loc.mask, params.mask)
+      gl.uniform1f(loc.curvature, params.curvature)
+      gl.uniform1f(loc.vignette, params.vignette)
+      gl.uniform1f(loc.fringe, params.fringe)
       gl.drawArrays(gl.TRIANGLES, 0, 3)
     },
 

@@ -58,6 +58,11 @@
   image-rendering: pixelated;
 }
 
+/* Fine dots and scanlines shimmer when shrunk with hard pixels, so the effect modes are resampled smoothly. */
+.canvas.smooth {
+  image-rendering: auto;
+}
+
 /* `display: block` above would otherwise beat the hidden attribute and leave the empty canvas taking up room. */
 .canvas[hidden] {
   display: none;

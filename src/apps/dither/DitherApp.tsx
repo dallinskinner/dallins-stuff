@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppMessage } from '../../desktop/WindowManager'
 import type { DitherParams, DitherRenderer } from './ditherRenderer'
-import { ALGORITHM_GROUPS, ALGORITHMS, DEFAULT_RAMP, MATCHINGS, MAX_PALETTE_COLORS, createDitherRenderer } from './ditherRenderer'
+import { ALGORITHM_GROUPS, ALGORITHMS, DEFAULT_RAMP, MATCHINGS, MAX_PALETTE_COLORS, MODES, createDitherRenderer, scaleParams } from './ditherRenderer'
 import type { AnimatedImage } from './animatedImage'
 import { decodeAnimatedImage } from './animatedImage'
 import { parsePreset, serializePreset } from './presetFile'
@@ -37,6 +37,20 @@ const DEFAULT_PARAMS: DitherParams = {
   contrast: 1,
   strength: 1,
   palette: PALETTES[0].colors,
+  celBands: 4,
+  celThreshold: 0.15,
+  celThickness: 2,
+  celSmooth: 2,
+  celPalette: false,
+  dotSize: 8,
+  dotAngle: 0,
+  misregister: 0,
+  lineSize: 4,
+  scanlines: 0.5,
+  mask: 0.3,
+  curvature: 0.3,
+  vignette: 0.4,
+  fringe: 1.5,
 }
 
 interface Source {
@@ -133,12 +147,12 @@ export function DitherApp() {
       }
       source.animation?.advance(now)
       if (element instanceof HTMLVideoElement && element.readyState < 2) return
-      // Scaling up multiplies the canvas and the dither cells together, so the look stays the same, only bigger.
+      // Scaling up multiplies the canvas and the effect sizes together, so the look stays the same, only bigger.
       const scale = effectiveScale(source, outputScaleRef.current)
       const width = Math.max(1, Math.round(source.width * source.fit * scale))
       const height = Math.max(1, Math.round(source.height * source.fit * scale))
       if (canvas.width !== width || canvas.height !== height) renderer.resize(width, height)
-      renderer.draw(element, source.fit * scale, { ...paramsRef.current, scale: paramsRef.current.scale * scale, cellSize: paramsRef.current.cellSize * scale })
+      renderer.draw(element, source.fit * scale, scaleParams(paramsRef.current, scale))
     }
     raf = requestAnimationFrame(tick)
 
@@ -302,6 +316,8 @@ export function DitherApp() {
 
   const stopRecording = () => recorderRef.current?.stop()
 
+  const usesPalette = params.mode === 'dither' || params.mode === 'ascii' || (params.mode === 'cel' && params.celPalette)
+
   async function loadPreset(file: File) {
     try {
       setParams(parsePreset(await file.text()))
@@ -346,8 +362,11 @@ export function DitherApp() {
             <label className="ui-field">
               <span className="ui-field-header">Mode</span>
               <select value={params.mode} onChange={(e) => patch({ mode: e.target.value as DitherParams['mode'] })}>
-                <option value="dither">Dither</option>
-                <option value="ascii">ASCII</option>
+                {MODES.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             {params.mode === 'dither' && (
@@ -366,6 +385,13 @@ export function DitherApp() {
               </select>
             </label>
             )}
+            {params.mode === 'cel' && (
+              <label className="ui-check">
+                <input type="checkbox" checked={params.celPalette} onChange={(e) => patch({ celPalette: e.target.checked })} />
+                Use palette colors
+              </label>
+            )}
+            {usesPalette && (
             <label className="ui-field">
               <span className="ui-field-header">Color matching</span>
               <select
@@ -380,6 +406,7 @@ export function DitherApp() {
                 ))}
               </select>
             </label>
+            )}
             {exportsOnce && (
               <label className="ui-field">
                 <span className="ui-field-header">Playback speed</span>
@@ -405,7 +432,10 @@ export function DitherApp() {
                 ))}
               </select>
             </label>
-            {params.mode === 'ascii' ? (
+            {params.mode === 'dither' && (
+              <Slider label="Pixel size" value={params.scale} min={1} max={16} step={1} onChange={(scale) => patch({ scale })} />
+            )}
+            {params.mode === 'ascii' && (
               <>
                 <Slider label="Cell width" value={params.cellSize} min={3} max={32} step={1} onChange={(cellSize) => patch({ cellSize })} />
                 <Slider label="Letter spacing" value={params.letterSpacing} min={0.5} max={1.5} step={0.01} onChange={(letterSpacing) => patch({ letterSpacing })} />
@@ -419,8 +449,31 @@ export function DitherApp() {
                   Invert
                 </label>
               </>
-            ) : (
-              <Slider label="Pixel size" value={params.scale} min={1} max={16} step={1} onChange={(scale) => patch({ scale })} />
+            )}
+            {params.mode === 'cel' && (
+              <>
+                <Slider label="Bands" value={params.celBands} min={2} max={8} step={1} onChange={(celBands) => patch({ celBands })} />
+                <Slider label="Smoothing" value={params.celSmooth} min={0} max={8} step={0.5} onChange={(celSmooth) => patch({ celSmooth })} />
+                <Slider label="Outline width" value={params.celThickness} min={0} max={8} step={0.5} onChange={(celThickness) => patch({ celThickness })} />
+                <Slider label="Edge threshold" value={params.celThreshold} min={0.02} max={0.6} step={0.01} onChange={(celThreshold) => patch({ celThreshold })} />
+              </>
+            )}
+            {params.mode === 'cmyk' && (
+              <>
+                <Slider label="Dot spacing" value={params.dotSize} min={3} max={32} step={1} onChange={(dotSize) => patch({ dotSize })} />
+                <Slider label="Screen rotation" value={params.dotAngle} min={0} max={90} step={1} onChange={(dotAngle) => patch({ dotAngle })} />
+                <Slider label="Misregistration" value={params.misregister} min={0} max={12} step={0.5} onChange={(misregister) => patch({ misregister })} />
+              </>
+            )}
+            {params.mode === 'crt' && (
+              <>
+                <Slider label="Line size" value={params.lineSize} min={2} max={16} step={1} onChange={(lineSize) => patch({ lineSize })} />
+                <Slider label="Scanlines" value={params.scanlines} min={0} max={1} step={0.01} onChange={(scanlines) => patch({ scanlines })} />
+                <Slider label="Phosphor mask" value={params.mask} min={0} max={1} step={0.01} onChange={(mask) => patch({ mask })} />
+                <Slider label="Curvature" value={params.curvature} min={0} max={1} step={0.01} onChange={(curvature) => patch({ curvature })} />
+                <Slider label="Vignette" value={params.vignette} min={0} max={1} step={0.01} onChange={(vignette) => patch({ vignette })} />
+                <Slider label="Color fringing" value={params.fringe} min={0} max={8} step={0.5} onChange={(fringe) => patch({ fringe })} />
+              </>
             )}
             <Slider label="Brightness" value={params.brightness} min={-0.5} max={0.5} step={0.01} onChange={(brightness) => patch({ brightness })} />
             <Slider label="Contrast" value={params.contrast} min={0.25} max={3} step={0.01} onChange={(contrast) => patch({ contrast })} />
@@ -442,6 +495,7 @@ export function DitherApp() {
               </button>
             </div>
 
+            {usesPalette && (
             <div className="ui-field">
               <span className="ui-field-header">Palette</span>
               <select
@@ -482,6 +536,7 @@ export function DitherApp() {
                 </button>
               </div>
             </div>
+            )}
 
             <div className={styles.actions}>
               <button onClick={() => download(new Blob([serializePreset(params)], { type: 'application/json' }), 'dither.ditherpreset.json')}>
@@ -513,7 +568,11 @@ export function DitherApp() {
         )
       }
     >
-      <canvas ref={canvasRef} className={styles.canvas} hidden={!sourceLabel} />
+      <canvas
+        ref={canvasRef}
+        className={params.mode === 'dither' || params.mode === 'ascii' ? styles.canvas : `${styles.canvas} ${styles.smooth}`}
+        hidden={!sourceLabel}
+      />
       {!sourceLabel && <p className={styles.empty}>Open a video or image, or send a sketch or noise here from the p5 or Noise tool.</p>}
     </AppFrame>
   )
@@ -524,7 +583,7 @@ function Slider({ label, value, min, max, step, onChange }: { label: string; val
     <label className="ui-field">
       <span className="ui-field-header">
         {label}
-        <output>{Number.isInteger(step) ? value : value.toFixed(2)}</output>
+        <output>{Number.isInteger(step) ? value : value.toFixed(step < 0.1 ? 2 : 1)}</output>
       </span>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
     </label>
